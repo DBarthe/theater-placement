@@ -40,19 +40,23 @@ class Fringe:
         self._counter = itertools.count()
 
     def push(self, state: State, cursor: int, score: int):
-        heapq.heappush(self._heap, (-cursor, -score, next(self._counter), state))
+        # heapq.heappush(self._heap, (-cursor, -score, next(self._counter), state))
+        heapq.heappush(self._heap, (-score, -cursor, next(self._counter), state))
 
     def pop(self) -> Tuple[State, int]:
-        minus_cursor, minus_score, counter, state = heapq.heappop(self._heap)
+        # minus_cursor, minus_score, counter, state = heapq.heappop(self._heap)
+        minus_score, minus_cursor, counter, state = heapq.heappop(self._heap)
         return state, -minus_cursor
 
     def peek(self) -> Tuple[State, int]:
-        minus_cursor, minus_score, counter, state = self._heap[0]
+        # minus_cursor, minus_score, counter, state = self._heap[0]
+        minus_score, minus_cursor, counter, state = self._heap[0]
         return state, -minus_cursor
 
     def find(self, cursor) -> Tuple[State, int]:
         return next((state, -minus_cursor)
-                    for minus_cursor, minus_score, counter, state in self._heap
+                    # for minus_cursor, minus_score, counter, state in self._heap
+                    for minus_score, minus_cursor, counter, state in self._heap
                     if -minus_cursor == cursor)
 
     def __len__(self) -> int:
@@ -89,7 +93,7 @@ class Implementation:
     def assign(self, group_queue: List[Group], state: State) -> Dict[Group, Tuple[int, int]]:
         raise NotImplementedError
 
-    def evaluate(self, state: State) -> int:
+    def evaluate(self, state: State, cursor: int) -> int:
         raise NotImplementedError
 
 
@@ -164,9 +168,12 @@ class BasicImplementation(Implementation):
                     result.append(cloned_state)
         return result
 
-    def evaluate(self, state: BasicState) -> int:
+    def evaluate(self, state: BasicState, cursor: int) -> int:
         counter = Counter(itertools.chain.from_iterable(state.grid))
-        score = counter.get(BasicSeat.EMPTY, 0) + counter.get(BasicSeat.OCCUPIED, 0) - counter.get(BasicSeat.BLOCKED, 0)
+        # score = counter.get(BasicSeat.EMPTY, 0) + counter.get(BasicSeat.OCCUPIED, 0) - counter.get(BasicSeat.BLOCKED, 0)
+        # score = counter.get(BasicSeat.OCCUPIED, 0) / counter.get(BasicSeat.BLOCKED, 1)
+        score = cursor * self._row_size * self._num_rows + counter.get(BasicSeat.OCCUPIED, 0) + counter.get(BasicSeat.EMPTY, 0)
+
         return score
 
     def assign(self, group_queue: List[Group], state: BasicState) -> Dict[Group, Tuple[int, int]]:
@@ -237,7 +244,7 @@ class Manager:
         self._group_queue = []
         self._fringe = Fringe()
         initial_state = impl.create_initial_state()
-        self._fringe.push(initial_state, 0, impl.evaluate(initial_state))
+        self._fringe.push(initial_state, 0, impl.evaluate(initial_state, 0))
         self._closed_set = ClosedSet()
         self._max_group_size = impl.max_group_size
 
@@ -250,7 +257,7 @@ class Manager:
             print("Trying to place group {} of {} pers".format(group.name, group.size))
             self.save()
             self._group_queue.append(group)
-            success = self.do_place()
+            success = self.do_place(max_loop=50)
             if not success:
                 print("Failed to place group {} of {} pers".format(group.name, group.size))
                 del self._group_queue[-1]
@@ -271,14 +278,21 @@ class Manager:
         for group, (row_n, seat_n) in solution.items():
             print("Group {} of {} pers -> row {} seat {}".format(group.name, group.size, row_n, seat_n))
 
-    def do_place(self) -> bool:
+    def do_place(self, max_loop=None) -> bool:
+        i = 0
         while len(self._fringe) > 0:
+
+            if max_loop is not None and i >= max_loop:
+                print("Timeout after {} iterations".format(i))
+                return False
+            i += 1
+
             # print("Fringe size = {} / ClosedSet size = {}".format(len(self._fringe), len(self._closed_set)))
             state, cursor = self._fringe.pop()
             expanded_states = self._impl.expand(state, self._group_queue[cursor])
 
             for expanded_state in expanded_states:
-                self._fringe.push(expanded_state, cursor + 1, self._impl.evaluate(expanded_state))
+                self._fringe.push(expanded_state, cursor + 1, self._impl.evaluate(expanded_state, cursor + 1))
                 self._closed_set.put(expanded_state)
 
             if len(expanded_states) > 0 and cursor + 1 == len(self._group_queue):
