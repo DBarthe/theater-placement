@@ -53,12 +53,13 @@ class BasicState(State):
         return res
 
 
-class BasicImplementation(Implementation):
+class GridImplementation(Implementation):
 
     def __init__(self, num_rows=5, row_size=5, max_group_size=5):
         self._num_rows = num_rows
         self._row_size = row_size
         self._max_group_size = max_group_size
+        self._num_seats = num_rows * row_size
 
     @property
     def max_group_size(self) -> int:
@@ -82,7 +83,7 @@ class BasicImplementation(Implementation):
         counter = Counter(itertools.chain.from_iterable(state.grid))
         # score = counter.get(BasicSeat.EMPTY, 0) + counter.get(BasicSeat.OCCUPIED, 0) - counter.get(BasicSeat.BLOCKED, 0)
         # score = counter.get(BasicSeat.OCCUPIED, 0) / counter.get(BasicSeat.BLOCKED, 1)
-        score = cursor * self._row_size * self._num_rows + counter.get(BasicSeat.OCCUPIED, 0) + counter.get(BasicSeat.EMPTY, 0)
+        score = cursor * self._num_seats + counter.get(BasicSeat.OCCUPIED, 0) + counter.get(BasicSeat.EMPTY, 0)
 
         return score
 
