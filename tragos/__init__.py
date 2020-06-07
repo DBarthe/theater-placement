@@ -24,10 +24,10 @@ def main(argv=None):
         row_size=args.row_size,
         max_group_size=args.max_group_size,
         accessibility_rows={0, 1},
-        max_expand=args.max_expand
+        max_expand=args.max_expand,
     )
 
-    manager = Manager(impl, args.max_num_groups)
+    manager = Manager(impl, max_num_groups=args.max_num_groups, max_loop=args.max_loop)
     manager.run()
 
 
