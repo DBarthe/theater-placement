@@ -198,7 +198,7 @@ class IndexedImplementation(Implementation):
             state.empty_index,
             self._meta_state.slots_by_size[group.size]
         ])
-        for slot_n in slots_index.iterate():
+        for slot_n in islice(slots_index.iterate(), 10):
             expanded_states.append(self.__place_group(state, slot_n))
         return expanded_states
 

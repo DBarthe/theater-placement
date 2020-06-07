@@ -1,4 +1,3 @@
-import itertools
 from collections import Counter
 
 from tragos import GridImplementation, IndexedImplementation
