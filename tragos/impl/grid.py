@@ -146,3 +146,8 @@ class GridImplementation(Implementation):
         while seat_n + size < self._row_size and row[seat_n + size] == GridSeat.OCCUPIED:
             size += 1
         return size
+
+    def repr_state(self, state: State) -> str:
+        return repr(state)
+
+

@@ -94,6 +94,9 @@ class Implementation:
     def evaluate(self, state: State, cursor: int) -> int:
         raise NotImplementedError
 
+    def repr_state(self, state: State) -> str:
+        raise NotImplementedError
+
 
 class Manager:
 
@@ -123,14 +126,14 @@ class Manager:
                 self._max_group_size = group.size - 1
             else:
                 print("Succeed to place group {} of {} pers".format(group.name, group.size))
-                print(self._fringe.find(cursor=len(self._group_queue))[0])
+                print(self._impl.repr_state(self._fringe.find(cursor=len(self._group_queue))[0]))
                 print("{} seats occupied".format(sum((group.size for group in self._group_queue))))
                 print("{} groups placed".format(len(self._group_queue)))
 
         final_state, _ = self._fringe.find(cursor=len(self._group_queue))
         solution = self._impl.assign(self._group_queue, final_state)
         print("A solution has been found")
-        print(final_state)
+        print(self._impl.repr_state(final_state))
         print("{} seats occupied".format(sum((group.size for group in self._group_queue))))
         print("{} groups placed".format(len(self._group_queue)))
         for group, (row_n, seat_n) in solution.items():
@@ -166,6 +169,10 @@ class Manager:
 
     def next_group(self) -> Generator[Group, None, None]:
         group_id = 1
+        # for g in [2, 1, 2]:
+        #     yield Group(str(group_id), g)
+        #     group_id += 1
+        # return
         while self._max_group_size > 0:
             yield Group(str(group_id), random.randint(1, self._max_group_size))
             group_id += 1

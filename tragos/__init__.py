@@ -1,10 +1,11 @@
 from tragos.impl.grid import GridImplementation
 from tragos.core import Manager
-from tragos.impl.packed import PackedImplementation
+from tragos.impl.indexed import IndexedImplementation
+from tragos.impl.packed import PackedGridImplementation, PackedIndexedImplementation
 
 
 def main():
-    impl = PackedImplementation(num_rows=15, row_size=20, max_group_size=6)
+    impl = PackedIndexedImplementation(num_rows=30, row_size=30, max_group_size=6)
     manager = Manager(impl)
     manager.run()
 
