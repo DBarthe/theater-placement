@@ -1,8 +1,7 @@
 from itertools import islice
-from typing import NamedTuple, List, Dict, Generator, Tuple
+from typing import NamedTuple, List, Dict, Generator, Tuple, Set
 
 from tragos.core import State, Implementation, Group
-from tragos.impl.grid import GridState, GridSeat
 
 
 class IndexedSlot(NamedTuple):
@@ -80,20 +79,28 @@ class BitSetIndex:
             value &= index._value
         return BitSetIndex(size=size, value=value)
 
+    @staticmethod
+    def inverted(index: 'BitSetIndex'):
+        inverted_index = index.clone()
+        inverted_index.inverse()
+        return inverted_index
+
 
 class MetaState:
 
-    def __init__(self, num_rows: int, row_size: int, max_group_size: int):
+    def __init__(self, num_rows: int, row_size: int, max_group_size: int, accessibility_rows: Set[int]):
         self._num_rows = num_rows
         self._row_size = row_size
         self._num_seats = num_rows * row_size
         self._max_group_size = max_group_size
+        self._accessibility_rows = accessibility_rows
         self.slots = self.__compute_slots()
         self.slots_by_size = self.__compute_slots_by_size()
         self.slots_by_seat = self.__compute_slots_by_seat()
-
-        # given a slot, return all slots that have no connection
+        # given a slot that we wish to occupy, return all other slots that are still available after it
         self.slots_by_safety = self.__compute_slots_by_safety()
+        # return true => all accessible slots, false => all slots that do not block or occupy accessible slots
+        self.slots_by_accessibility = self.__compute_slots_by_accessibility()
 
     def __compute_slots(self) -> List[IndexedSlot]:
         slots = []
@@ -131,7 +138,6 @@ class MetaState:
 
             index = BitSetIndex.union(impacted_indexes)
             index.inverse()
-            # index.remove(slot_n)
             slots_by_safety.append(index)
 
         return slots_by_safety
@@ -158,6 +164,13 @@ class MetaState:
 
         return res
 
+    def __compute_slots_by_accessibility(self) -> Dict[bool, BitSetIndex]:
+        accessible_index = BitSetIndex.from_list(
+            [slot.row_n in self._accessibility_rows for slot in self.slots])
+        non_accessible_index = BitSetIndex.intersect(
+            [self.slots_by_safety[slot_n] for slot_n in accessible_index.iterate()])
+        return {True: accessible_index, False: non_accessible_index}
+
 
 class IndexedState(State):
 
@@ -177,12 +190,15 @@ class IndexedState(State):
 
 class IndexedImplementation(Implementation):
 
-    def __init__(self, num_rows=5, row_size=5, max_group_size=5):
+    def __init__(self, num_rows: int = 5, row_size: int = 5, max_group_size: int = 5,
+                 accessibility_rows: Set[int] = None, max_expand=10):
         self._num_rows = num_rows
         self._row_size = row_size
         self._max_group_size = max_group_size
         self._num_seats = num_rows * row_size
-        self._meta_state = MetaState(num_rows, row_size, max_group_size)
+        self._accessibility_rows = accessibility_rows if accessibility_rows is not None else set([])
+        self._meta_state = MetaState(num_rows, row_size, max_group_size, accessibility_rows)
+        self._max_expand = max_expand
 
     @property
     def max_group_size(self) -> int:
@@ -194,11 +210,24 @@ class IndexedImplementation(Implementation):
 
     def expand(self, state: IndexedState, group: Group) -> List[IndexedState]:
         expanded_states = []
-        slots_index = BitSetIndex.intersect([
+
+        slots_index_intermediate = BitSetIndex.intersect([
             state.empty_index,
-            self._meta_state.slots_by_size[group.size]
+            self._meta_state.slots_by_size[group.size],
         ])
-        for slot_n in islice(slots_index.iterate(), 10):
+
+        if group.accessibility:
+            slots_index = BitSetIndex.intersect([
+                slots_index_intermediate,
+                self._meta_state.slots_by_accessibility[True]
+            ])
+        else:
+            slots_index = BitSetIndex.intersect(
+                [slots_index_intermediate, self._meta_state.slots_by_accessibility[False]])
+            if not slots_index.any():
+                slots_index = slots_index_intermediate
+
+        for slot_n in islice(slots_index.iterate(), self._max_expand):
             expanded_states.append(self.__place_group(state, slot_n))
         return expanded_states
 
@@ -243,21 +272,19 @@ class IndexedImplementation(Implementation):
         return result
 
     def repr_state(self, state: IndexedState) -> str:
-        return repr(self.__convert_state(state))
-
-    def __convert_seat(self, state, row_n, seat_n) -> GridSeat:
-        seat_slots_index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat_n, row_n=row_n)]
-        if BitSetIndex.intersect([state.occupied_index, seat_slots_index]).any():
-            return GridSeat.OCCUPIED
-        elif BitSetIndex.intersect([state.empty_index, seat_slots_index]).any():
-            return GridSeat.EMPTY
-        else:
-            return GridSeat.BLOCKED
-
-    def __convert_state(self, state: IndexedState) -> GridState:
-        return GridState([[
-            self.__convert_seat(state, row_n, seat_n)
-            for seat_n in range(self._row_size)]
-            for row_n in range(self._num_rows)
-        ])
-
+        s = ""
+        for row_n in range(self._num_rows):
+            if row_n in self._accessibility_rows:
+                s += '>'
+            else:
+                s += ' '
+            for seat_n in range(self._row_size):
+                seat_slots_index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat_n, row_n=row_n)]
+                if BitSetIndex.intersect([state.occupied_index, seat_slots_index]).any():
+                    s += 'o'
+                elif BitSetIndex.intersect([state.empty_index, seat_slots_index]).any():
+                    s += '.'
+                else:
+                    s += 'x'
+            s += '\n'
+        return s
