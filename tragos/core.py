@@ -19,9 +19,10 @@ class State:
 
 class Group:
 
-    def __init__(self, name: str, size: int):
+    def __init__(self, name: str, size: int, accessibility: bool = False):
         self._name = name
         self._size = size
+        self._accessibility = accessibility
 
     @property
     def name(self) -> str:
@@ -30,6 +31,16 @@ class Group:
     @property
     def size(self) -> int:
         return self._size
+
+    @property
+    def accessibility(self):
+        return self._accessibility
+
+    def __repr__(self) -> str:
+        s = "{} of {} pers".format(self._name, self._size)
+        if self.accessibility:
+            s += " with accessibility"
+        return s
 
 
 class Fringe:
@@ -100,14 +111,18 @@ class Implementation:
 
 class Manager:
 
-    def __init__(self, impl: Implementation):
+    def __init__(self, impl: Implementation, max_num_groups=None, max_loop=None):
         self._impl = impl
         self._group_queue = []
+        self._max_num_groups = max_num_groups
         self._fringe = Fringe()
         initial_state = impl.create_initial_state()
         self._fringe.push(initial_state, 0, impl.evaluate(initial_state, 0))
         self._closed_set = ClosedSet()
         self._max_group_size = impl.max_group_size
+
+        # TODO: replace with a timeout
+        self._max_loop = max_loop
 
         self._backup = None
 
@@ -115,20 +130,23 @@ class Manager:
         # loop
         print("Starting placement loop")
         for group in self.next_group():
-            print("Trying to place group {} of {} pers".format(group.name, group.size))
+            print("Trying to place group {}".format(group))
             self.save()
             self._group_queue.append(group)
-            success = self.do_place(max_loop=50)
+            success = self.do_place(max_loop=self._max_loop)
             if not success:
-                print("Failed to place group {} of {} pers".format(group.name, group.size))
+                print("Failed to place group {}".format(group))
                 del self._group_queue[-1]
                 self.restore()
                 self._max_group_size = group.size - 1
             else:
-                print("Succeed to place group {} of {} pers".format(group.name, group.size))
+                print("Succeed to place group {}".format(group))
                 print(self._impl.repr_state(self._fringe.find(cursor=len(self._group_queue))[0]))
                 print("{} seats occupied".format(sum((group.size for group in self._group_queue))))
                 print("{} groups placed".format(len(self._group_queue)))
+                if self._max_num_groups is not None and len(self._group_queue) >= self._max_num_groups:
+                    print("Reached maximum number of groups {}".format(self._max_num_groups))
+                    break
 
         final_state, _ = self._fringe.find(cursor=len(self._group_queue))
         solution = self._impl.assign(self._group_queue, final_state)
@@ -137,7 +155,7 @@ class Manager:
         print("{} seats occupied".format(sum((group.size for group in self._group_queue))))
         print("{} groups placed".format(len(self._group_queue)))
         for group, (row_n, seat_n) in solution.items():
-            print("Group {} of {} pers -> row {} seat {}".format(group.name, group.size, row_n, seat_n))
+            print("Group {} -> row {} seat {}".format(group, row_n, seat_n))
 
     def do_place(self, max_loop=None) -> bool:
         i = 0
@@ -174,5 +192,8 @@ class Manager:
         #     group_id += 1
         # return
         while self._max_group_size > 0:
-            yield Group(str(group_id), random.randint(1, self._max_group_size))
+            yield Group(
+                name=str(group_id),
+                size=random.randint(1, self._max_group_size),
+                accessibility=random.randint(1, 10) == 1)
             group_id += 1
