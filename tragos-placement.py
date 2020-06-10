@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import tragos
+import tragos.engine
 
 if __name__ == '__main__':
-    tragos.main()
+    tragos.engine.main()

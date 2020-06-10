@@ -1,7 +1,7 @@
 from itertools import islice
 from typing import NamedTuple, List, Dict, Generator, Tuple, Set
 
-from tragos.core import State, Implementation, Group
+from tragos.engine.core import State, Implementation, Group
 
 
 class IndexedSlot(NamedTuple):
@@ -238,16 +238,28 @@ class IndexedImplementation(Implementation):
         occupied_index.add(slot_n)
         return IndexedState(empty_index, occupied_index)
 
+    # def evaluate(self, state: IndexedState, cursor: int) -> int:
+    #     score = int(cursor * self._num_seats * self._num_rows * self._max_group_size * (self._max_group_size + 1) / 2)
+    #     for slot_n in state.occupied_index.iterate():
+    #         slot = self._meta_state.slots[slot_n]
+    #         score += (self._num_rows - slot.row_n) * slot.size
+    #
+    #     for slot_n in state.empty_index.iterate():
+    #         slot = self._meta_state.slots[slot_n]
+    #         score += slot.size
+    #
+    #     return score
+
     def evaluate(self, state: IndexedState, cursor: int) -> int:
-        score = int(cursor * self._num_seats * self._num_rows * self._max_group_size * (self._max_group_size + 1) / 2)
-        for slot_n in state.occupied_index.iterate():
-            slot = self._meta_state.slots[slot_n]
-            score += (self._num_rows - slot.row_n) * slot.size
+        score = cursor * self._num_seats * self._num_rows
 
-        for slot_n in state.empty_index.iterate():
-            slot = self._meta_state.slots[slot_n]
-            score += slot.size
-
+        for row_n in range(self._num_rows):
+            for seat_n in range(self._row_size):
+                index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat_n, row_n=row_n)]
+                if BitSetIndex.intersect([index, state.occupied_index]).any():
+                    score += self._num_rows - row_n
+                elif BitSetIndex.intersect([index, state.empty_index]).any():
+                    score += 1
         return score
 
     def assign(self, group_queue: List[Group], state: IndexedState) -> Dict[Group, Tuple[int, int]]:

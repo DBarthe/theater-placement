@@ -4,7 +4,7 @@ from collections import Counter
 from copy import deepcopy
 from typing import List, Dict, Tuple
 
-from tragos.core import State, Implementation, Group
+from tragos.engine.core import State, Implementation, Group
 
 
 class GridSeat(enum.Enum):
@@ -79,12 +79,18 @@ class GridImplementation(Implementation):
                     result.append(cloned_state)
         return result
 
-    def evaluate(self, state: GridState, cursor: int) -> int:
-        counter = Counter(itertools.chain.from_iterable(state.grid))
-        # score = counter.get(BasicSeat.EMPTY, 0) + counter.get(BasicSeat.OCCUPIED, 0) - counter.get(BasicSeat.BLOCKED, 0)
-        # score = counter.get(BasicSeat.OCCUPIED, 0) / counter.get(BasicSeat.BLOCKED, 1)
-        score = cursor * self._num_seats + counter.get(GridSeat.OCCUPIED, 0) + counter.get(GridSeat.EMPTY, 0)
+    # def evaluate(self, state: GridState, cursor: int) -> int:
+    #     counter = Counter(itertools.chain.from_iterable(state.grid))
+    #     # score = counter.get(BasicSeat.EMPTY, 0) + counter.get(BasicSeat.OCCUPIED, 0) - counter.get(BasicSeat.BLOCKED, 0)
+    #     # score = counter.get(BasicSeat.OCCUPIED, 0) / counter.get(BasicSeat.BLOCKED, 1)
+    #     score = cursor * self._num_seats + counter.get(GridSeat.OCCUPIED, 0) + counter.get(GridSeat.EMPTY, 0)
+    #
+    #     return score
 
+    def evaluate(self, state: GridState, cursor: int) -> int:
+        score = cursor * self._num_seats * self._num_rows
+        for row_n, counter in enumerate([Counter(row) for row in state.grid]):
+            score += (self._num_rows - row_n) * counter.get(GridSeat.OCCUPIED, 0) + counter.get(GridSeat.EMPTY, 0)
         return score
 
     def assign(self, group_queue: List[Group], state: GridState) -> Dict[Group, Tuple[int, int]]:
@@ -149,5 +155,3 @@ class GridImplementation(Implementation):
 
     def repr_state(self, state: State) -> str:
         return repr(state)
-
-
