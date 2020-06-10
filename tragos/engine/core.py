@@ -4,6 +4,8 @@ import random
 from copy import deepcopy
 from typing import List, Generator, Dict, Tuple
 
+from tragos.common.models import Group
+
 
 class State:
 
@@ -15,32 +17,6 @@ class State:
 
     def __repr__(self):
         raise NotImplementedError
-
-
-class Group:
-
-    def __init__(self, name: str, size: int, accessibility: bool = False):
-        self._name = name
-        self._size = size
-        self._accessibility = accessibility
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def size(self) -> int:
-        return self._size
-
-    @property
-    def accessibility(self):
-        return self._accessibility
-
-    def __repr__(self) -> str:
-        s = "{} of {} pers".format(self._name, self._size)
-        if self.accessibility:
-            s += " with accessibility"
-        return s
 
 
 class Fringe:

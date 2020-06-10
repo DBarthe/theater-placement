@@ -13,8 +13,8 @@ def main(argv=None):
     parser.add_argument('--max-expand', dest='max_expand', type=int, default=10, help='the max expansion factor')
     parser.add_argument('--max-num-groups', dest='max_num_groups', type=int, default=None,
                         help='the max number of groups (default unlimited)')
-    parser.add_argument('--max-loop', dest='max_loop', type=int, default=None,
-                        help='the max number of iteration when searching (default unlimited)')
+    parser.add_argument('--max-loop', dest='max_loop', type=int, default=50,
+                        help='the max number of iteration when searching')
 
     args = parser.parse_args(argv)
 

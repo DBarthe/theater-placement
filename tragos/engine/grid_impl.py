@@ -4,7 +4,8 @@ from collections import Counter
 from copy import deepcopy
 from typing import List, Dict, Tuple
 
-from tragos.engine.core import State, Implementation, Group
+from tragos.engine.core import State, Implementation
+from tragos.common.models import Group
 
 
 class GridSeat(enum.Enum):
