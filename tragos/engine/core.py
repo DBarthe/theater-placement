@@ -114,6 +114,7 @@ class Manager:
                 print("Failed to place group {}".format(group))
                 del self._group_queue[-1]
                 self.restore()
+                # FIXME: decrementing max_group_size is broken since accessibility was added
                 self._max_group_size = group.size - 1
             else:
                 print("Succeed to place group {}".format(group))
