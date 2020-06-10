@@ -1,11 +1,30 @@
 # Tragos placement
 
-## TODO
+## Requirements
 
-- [x] Reserved rows for accessibility
-- [ ] Reserved slots for accessibility
-- [ ] Redistribute empty accessibility places
-- [ ] Auto split groups if necessary
-- [ ] Seats located with 2D real coordinates
-- [ ] Multiple seat classes
-- [ ] Persist intermediate result for later resume
+* Python 3.8
+* Virtualenv
+* Pip
+
+## Setup
+
+From console :
+```bash
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Or simply open repository folder inside PyCharm IDE.
+
+## Usage
+
+Run the flask api server on http://localhost:8080:
+```
+./server.py
+```
+
+Run the simulator:
+```
+python -O ./simulator.py --help
+```
