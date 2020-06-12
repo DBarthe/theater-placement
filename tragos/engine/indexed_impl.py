@@ -2,7 +2,7 @@ from itertools import islice
 from typing import NamedTuple, List, Dict, Generator, Tuple, Set
 
 from tragos.engine.core import State, Implementation
-from tragos.common.models import Group
+from tragos.models import Group
 
 
 class IndexedSlot(NamedTuple):

@@ -5,8 +5,10 @@ from copy import deepcopy
 from typing import List, Dict, Tuple
 
 from tragos.engine.core import State, Implementation
-from tragos.common.models import Group
+from tragos.models import Group
 
+
+# DEPRECATED : use indexed_impl.py
 
 class GridSeat(enum.Enum):
     EMPTY = 0

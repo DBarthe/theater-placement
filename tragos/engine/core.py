@@ -4,7 +4,7 @@ import random
 from copy import deepcopy
 from typing import List, Generator, Dict, Tuple
 
-from tragos.common.models import Group
+from tragos.models import Group
 
 
 class State:
