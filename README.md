@@ -28,3 +28,8 @@ Run the simulator:
 ```
 python -O ./simulator.py --help
 ```
+
+Start the react ui :
+```
+npm start --prefix tragos-ui
+```
