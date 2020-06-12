@@ -3,6 +3,9 @@ from os import environ
 from typing import Tuple, Type, TypeVar, Optional, Dict
 import logging
 
+# env + ini + default config loader.
+# could be replaced by python-dotenv, but, anyway...
+
 ini = configparser.ConfigParser()
 read_ret = ini.read('config.ini')
 if len(read_ret) == 0:
@@ -23,6 +26,7 @@ def _config_item(value_type: Type[CONFIG_T],
     return value_type(val)
 
 
+# this static class is exported in the tragos.__init__ module so it can be imported like this : imort tragos.Config
 class Config:
     BIND_ADDRESS: str = _config_item(str, "TRAGOS_BIND_ADDRESS", ("server", "bind_address"), "127.0.0.1")
     BIND_PORT: int = _config_item(int, "TRAGOS_BIND_PORT", ("server", "bind_port"), 8080)
