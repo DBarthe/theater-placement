@@ -1,38 +1,68 @@
-.App {
+.wrapper, #root, html, body {
+  height: 100%;
+  margin: 0;
+}
+
+.topbar {
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 50px;
+  z-index: 5;
+}
+
+.side-panel {
+  width: 250px;
+  position: absolute;
+  top: 50px;
+  left: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.side-panel-tab-ul {
+  border-bottom: 1px solid #BFCCD6 ;
+  z-index: 1;
+  box-shadow:  0 0 3px rgba(16, 22, 26, 0.15), 0 0 0 rgba(16, 22, 26, 0), 0 0 0 rgba(16, 22, 26, 0)
+}
+
+.side-panel-tab-li {
   text-align: center;
+  width: 50%;
+  height: 40px;
+  margin: 0;
+  padding: 5px;
+  margin-right: 0 !important;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.side-panel-tab {
+  width: 250px;
+  margin: 0;
+  padding: 0;
+  top: 40px;
+  left: 0;
+  bottom: 0;
+  position: absolute;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.side-list {
+  margin: 0;
+  padding: 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.side-list li {
+  list-style-type: none;
+  margin: 0;
+  padding: 5px;
+  border-bottom: 1px solid #BFCCD6;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+.side-list li:hover {
+  background-color: #F5F8FA;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
