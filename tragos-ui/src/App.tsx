@@ -1,7 +1,7 @@
 import React, { Props } from 'react';
 import logo from './logo.svg';
 
-import { Button, Navbar, NavbarGroup, NavbarHeading, NavbarDivider, Tabs, Tab, Classes, Card, Icon, MenuItem, HTMLTable, Divider } from "@blueprintjs/core";
+import { Button, Navbar, NavbarGroup, NavbarHeading, NavbarDivider, Tabs, Tab, Classes, Card, Icon, MenuItem, HTMLTable, Divider, ButtonGroup, AnchorButton, Switch as BpSwitch, RadioGroup, Radio, Popover, ControlGroup, InputGroup } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
 import { BrowserRouter as Router, Link, Route, Switch } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ function App() {
     <Router>
       <TopBar />
       <SidePanel />
+      <MainPanel />
     </Router>
   );
 }
@@ -29,6 +30,7 @@ function TopBar() {
         <Link to="/venues" className="bp3-button bp3-minimal">Spectacles</Link>
 
         <Select
+          className="quick-access-popover"
           itemRenderer={(item, { handleClick, modifiers }) => <MenuItem
             active={modifiers.active}
             key={item}
@@ -49,7 +51,7 @@ function TopBar() {
 
 function SidePanel() {
   return (
-    <div className="side-panel bp3-card bp3-elevation-1">
+    <div className="side-panel bp3-card">
       <ul className="side-panel-tab-ul bp3-tab-list" role="tablist">
         <li className="side-panel-tab-li bp3-tab" role="tab" aria-selected="true">Réservations</li>
         <li className="side-panel-tab-li bp3-tab" role="tab">Sièges</li>
@@ -85,6 +87,63 @@ function SidePanel() {
       </div>
     </div>
 
+  )
+}
+
+function ToolBar() {
+  return (
+    <div className="main-panel-toolbar">
+      <ButtonGroup minimal={false} className="main-panel-toolbar-item">
+        <Button icon="add" intent={"primary"}>Ajouter un groupe</Button>
+        <Button icon="import" intent={"primary"}>Importer un fichier</Button>
+      </ButtonGroup>
+      <Button icon="refresh" intent={"success"} className="main-panel-toolbar-item" >Recalculer</Button>
+      <Button icon="take-action" intent={"warning"} className="main-panel-toolbar-item" >Placer les arrivés</Button>
+      <ButtonGroup minimal={false} className="main-panel-toolbar-item">
+        <Button icon="undo" intent={"none"}></Button>
+        <Button icon="redo" intent={"none"}></Button>
+      </ButtonGroup>
+      <Popover position="bottom">
+        <Button text="Mode" rightIcon="caret-down" icon="wrench" className="main-panel-toolbar-item" />
+        <ControlGroup fill={false} vertical={true} className="select-mode-popover">
+          <RadioGroup
+            label="Mode"
+            onChange={console.log}
+            selectedValue={"one"}
+          >
+
+            <Radio label="Pré-vente" value="one" />
+            <Radio label="Sur place" value="two" />
+            <Radio label="Clôture" value="three" />
+          </RadioGroup>
+          <Divider></Divider>
+          <label className={Classes.LABEL}>
+            PMR
+          </label>
+          <BpSwitch alignIndicator="center" labelElement={<span><Icon icon="lock" /></span>} />
+          
+        </ControlGroup>
+      </Popover>
+
+      {/* } />
+      <BpSwitch label="Mode retardataire" /> */}
+    </div>
+  )
+}
+
+function MainPanel() {
+  return (
+    <div className="main-panel">
+      <ToolBar />
+      <div className="main-panel-content">
+        <div className="main-panel-info">
+          <div className="main-panel-details"></div>
+          <div className="main-panel-stats"></div>
+        </div>
+        <div className="main-panel-map">
+        </div>
+      </div>
+    </div>
   )
 }
 

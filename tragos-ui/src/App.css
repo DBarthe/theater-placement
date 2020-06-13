@@ -5,27 +5,29 @@
 
 .topbar {
   overflow: hidden;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   height: 50px;
-  z-index: 5;
+  z-index: 10;
 }
 
 .side-panel {
   width: 250px;
-  position: absolute;
+  position: fixed;
   top: 50px;
   left: 0;
   bottom: 0;
   margin: 0;
   padding: 0;
+  z-index: 5;
+  border-radius: 0;
 }
 
 .side-panel-tab-ul {
   border-bottom: 1px solid #BFCCD6 ;
-  z-index: 1;
-  box-shadow:  0 0 3px rgba(16, 22, 26, 0.15), 0 0 0 rgba(16, 22, 26, 0), 0 0 0 rgba(16, 22, 26, 0)
+  box-shadow:  0 0 3px rgba(16, 22, 26, 0.15), 0 0 0 rgba(16, 22, 26, 0), 0 0 0 rgba(16, 22, 26, 0);
+  z-index: 7;
 }
 
 .side-panel-tab-li {
@@ -65,4 +67,48 @@
 .side-list li:hover {
   background-color: #F5F8FA;
 }
+
+.main-panel {
+  position: absolute;
+  left: 250px;
+  top: 50px;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.main-panel-toolbar {
+  flex: 0 auto auto;
+  border-bottom: 1px solid #BFCCD6 ;
+  z-index: 375;
+  box-shadow:  0 0 3px rgba(16, 22, 26, 0.15), 0 0 0 rgba(16, 22, 26, 0), 0 0 0 rgba(16, 22, 26, 0);
+
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-content: space-around;
+  align-items: center;
+
+  padding: 5px;
+}
+
+.main-panel-toolbar-item  {
+  margin: 0 5px;
+
+}
+
+.main-panel-toolbar * {
+  font-size: 12px;
+}
+
+.main-panel-content {
+  flex: 0 auto auto;
+}
+
+.select-mode-popover {
+  padding: 20px;
+}
+
 
