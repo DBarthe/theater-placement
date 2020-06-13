@@ -112,7 +112,7 @@ function ToolBar() {
             selectedValue={"one"}
           >
 
-            <Radio label="Pré-vente" value="one" />
+            <Radio label="Pré-ventes" value="one" />
             <Radio label="Sur place" value="two" />
             <Radio label="Clôture" value="three" />
           </RadioGroup>
@@ -137,10 +137,16 @@ function MainPanel() {
       <ToolBar />
       <div className="main-panel-content">
         <div className="main-panel-info">
-          <div className="main-panel-details"></div>
-          <div className="main-panel-stats"></div>
+          <p>sdsqsd</p>
+          {/* <div className="main-panel-details"></div>
+          <div className="main-panel-stats"></div> */}
         </div>
         <div className="main-panel-map">
+          <div className="map-image-wrapper">
+            <div>
+              <img src="plan-salle.jpg" className="map-image" alt=""/>
+            </div>
+          </div>
         </div>
       </div>
     </div>
