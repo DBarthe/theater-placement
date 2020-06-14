@@ -135,20 +135,17 @@ function MainPanel() {
   return (
     <div className="main-panel">
       <ToolBar />
-      <div className="main-panel-content">
         <div className="main-panel-info">
           <p>sdsqsd</p>
-          {/* <div className="main-panel-details"></div>
-          <div className="main-panel-stats"></div> */}
         </div>
         <div className="main-panel-map">
-          <div className="map-image-wrapper">
+          <img src="plan-salle.jpg" className="map-image" alt=""/>
+          {/* <div className="map-image-wrapper">
             <div>
               <img src="plan-salle.jpg" className="map-image" alt=""/>
             </div>
-          </div>
+          </div> */}
         </div>
-      </div>
     </div>
   )
 }
