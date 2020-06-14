@@ -31,4 +31,4 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    main(["10", "10", "5"])
+    main(["50", "50", "5"])
