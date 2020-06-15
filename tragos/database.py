@@ -1,13 +1,11 @@
 from typing import Union
 
-from ZODB.BaseStorage import BaseStorage
-import ZODB.FileStorage
 import ZODB.Connection
-
-import persistent
-import transaction
+import ZODB.FileStorage
+from ZODB.BaseStorage import BaseStorage
 
 from tragos import Config
+from tragos.models import TragosData, Venue
 
 
 class DatabaseManager:
@@ -15,8 +13,17 @@ class DatabaseManager:
     def __init__(self, storage: Union[str, None, BaseStorage] = None):
         self.db = ZODB.DB(storage)
 
+    def load_initial_data(self):
+        with self.create_transaction() as co:
+            if 'tragos' not in co.root():
+                co.root.tragos = TragosData()
+                co.root.tragos.venues.insert("1", Venue(uid="1"))
+
     def create_connection(self) -> ZODB.Connection:
         return self.db.open()
+
+    def create_transaction(self) -> ZODB.Connection:
+        return self.db.transaction()
 
     @staticmethod
     def from_config():
@@ -24,21 +31,3 @@ class DatabaseManager:
         if storage == "":
             storage = None
         return DatabaseManager(storage)
-
-
-if __name__ == '__main__':
-    class Toto(persistent.Persistent):
-        def __init__(self):
-            self.x = 42
-
-        def __repr__(self):
-            return str(self.x)
-
-
-    manager = DatabaseManager("test.db")
-    co = manager.create_connection()
-    toto = Toto()
-    co.root.toto = toto
-    print(co.root.toto)
-    toto.x = 21
-    transaction.commit()
