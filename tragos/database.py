@@ -1,33 +1,34 @@
-from typing import Union
+from dataclasses import asdict
 
-import ZODB.Connection
-import ZODB.FileStorage
-from ZODB.BaseStorage import BaseStorage
+import pymongo
+from bson import ObjectId
+from pymongo import MongoClient
 
 from tragos import Config
-from tragos.models import TragosData, Venue
+from tragos.models import Venue
 
 
 class DatabaseManager:
 
-    def __init__(self, storage: Union[str, None, BaseStorage] = None):
-        self.db = ZODB.DB(storage)
+    def __init__(self, url: str, name: str):
+        self.client = MongoClient(url)
+        self.db = self.client[name]
 
     def load_initial_data(self):
-        with self.create_transaction() as co:
-            if 'tragos' not in co.root():
-                co.root.tragos = TragosData()
-                co.root.tragos.venues.insert("1", Venue(uid="1"))
+        venue = Venue(_id=ObjectId("a" * 24))
+        self.db["venues"].update_one({"_id": venue.id}, {"$set": asdict(venue)}, upsert=True)
 
-    def create_connection(self) -> ZODB.Connection:
-        return self.db.open()
+    def events(self) -> pymongo.collection.Collection:
+        return self.db['events']
 
-    def create_transaction(self) -> ZODB.Connection:
-        return self.db.transaction()
+    def venues(self) -> pymongo.collection.Collection:
+        return self.db['venues']
 
     @staticmethod
     def from_config():
-        storage = Config.DATABASE_FILE
-        if storage == "":
-            storage = None
-        return DatabaseManager(storage)
+        return DatabaseManager(Config.DATABASE_URL, Config.DATABASE_NAME)
+
+
+if __name__ == '__main__':
+    db_manager = DatabaseManager.from_config()
+    db_manager.load_initial_data()
