@@ -3,8 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, List, Dict
 
-from BTrees.OOBTree import OOBTree
-from persistent import Persistent
+from bson import ObjectId
 
 
 @dataclass
@@ -39,7 +38,11 @@ class Group:
 
 @dataclass
 class Venue:
-    uid: str
+    _id: Optional[ObjectId] = None
+
+    @property
+    def id(self):
+        return self._id
 
 
 class Phase(str, Enum):
@@ -50,7 +53,7 @@ class Phase(str, Enum):
 
 
 @dataclass
-class Requirements(Persistent):
+class Requirements:
     group_queue: List[Group] = field(default_factory=lambda: [])
     lock_accessibility: bool = True
     phase: Phase = Phase.NORMAL
@@ -63,7 +66,7 @@ class SeatStatus(str, Enum):
 
 
 @dataclass
-class Solution(Persistent):
+class Solution:
     success: bool
 
     # stats
@@ -100,23 +103,11 @@ class History:
 
 
 @dataclass
-class Event(Persistent):
-    uid: str
+class Event:
     name: str
     show_date: datetime
-    venue: Venue
     requirements: Requirements
     solution: Optional[Solution]
     history: History
-
-
-@dataclass
-class TragosData(Persistent):
-    events: OOBTree = OOBTree()
-    venues: OOBTree = OOBTree()
-
-    def get_event(self, uid: str, default: Optional[Event] = None) -> Event:
-        return self.events.get(uid, default)
-
-    def get_venue(self, uid: str, default: Optional[Event] = None) -> Venue:
-        return self.venues.get(uid, default)
+    venue_id: ObjectId
+    _id: Optional[ObjectId] = None

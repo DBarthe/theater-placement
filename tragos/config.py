@@ -31,7 +31,8 @@ class Config:
     BIND_ADDRESS: str = _config_item(str, "TRAGOS_BIND_ADDRESS", ("server", "bind_address"), "127.0.0.1")
     BIND_PORT: int = _config_item(int, "TRAGOS_BIND_PORT", ("server", "bind_port"), 8080)
     FLASK_DEBUG: bool = _config_item(bool, "TRAGOS_FLASK_DEBUG", ("server", "flask_debug"), False)
-    DATABASE_FILE: str = _config_item(str, "TRAGOS_DATABASE_FILE", ("database", "file"), "")
+    DATABASE_URL: str = _config_item(str, "TRAGOS_DATABASE_URL", ("database", "url"), "mongodb://localhost:27017/")
+    DATABASE_NAME: str = _config_item(str, "TRAGOS_DATABASE_NAME", ("database", "name"), "tragos")
 
     @staticmethod
     def asdict() -> Dict[str, CONFIG_T]:

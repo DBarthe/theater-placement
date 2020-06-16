@@ -1,21 +1,30 @@
 import traceback
 
 import dateutil.parser
+import flask
+from bson import ObjectId
 from flask import Flask, jsonify, request
 from schema import Schema, And, Use
 
-from tragos import Config, services
+from tragos import Config
 from tragos.database import DatabaseManager
-from tragos.models import TragosData
-from tragos.services import TragosException
+from tragos.services import TragosException, MainService
 
 app = Flask('tragos')
 db = DatabaseManager.from_config()
 db.load_initial_data()
 
+service = MainService(db)
 
-def get_readonly_data() -> TragosData:
-    return db.create_connection().root.tragos
+
+class JSONEncoder(flask.json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return flask.json.JSONEncoder.default(self, o)
+
+
+app.json_encoder = JSONEncoder
 
 
 @app.route('/')
@@ -25,24 +34,28 @@ def index():
 
 @app.route("/events")
 def list_events():
-    with db.create_transaction() as t:
-        events = services.list_events(t.root.tragos)
-        return jsonify(events)
+    events = service.list_events()
+    return jsonify(events)
 
 
 create_event_schema = Schema({
     "name": And(str, len),
     "show_date": And(str, Use(dateutil.parser.parse)),
-    "venue_uid": And(str, len)
+    "venue_id": And(str, len, Use(ObjectId))
 })
 
 
 @app.route("/events", methods=["POST"])
 def create_event():
     content = create_event_schema.validate(request.json)
-    with db.create_transaction() as t:
-        event = services.create_event(t.root.tragos, **content)
-        return jsonify(event)
+    event = service.create_event(**content)
+    return jsonify(event)
+
+
+@app.route("/events/<event_id>", methods=["GET"])
+def get_event(event_id: str):
+    event = service.get_event(ObjectId(event_id))
+    return jsonify(event)
 
 
 @app.errorhandler(TragosException)
