@@ -1,7 +1,6 @@
 import React from 'react';
-import { Event, Group } from './Models';
+import { Group } from './Models';
 import { MdAccessible } from 'react-icons/md';
-import { groupCollapsed } from 'console';
 
 interface SidePanelProps {
     group_queue: Group[]
