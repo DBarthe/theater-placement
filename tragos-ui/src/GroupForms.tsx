@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useCallback, ChangeEvent } from "react";
 import { Divider, FormGroup, InputGroup, NumericInput, Button, Intent, Switch } from "@blueprintjs/core";
 import { MdAccessible } from "react-icons/md";
@@ -38,7 +38,7 @@ export function FormAddGroup(props : FormAddGroupProps) {
     }, [])
 
 
-    return <div className="bp3-card">
+    return <div className="bp3-card main-panel-info-card">
         <h3 className="bp3-heading">Ajouter un groupe</h3>
         <Divider></Divider>
         <div className="main-panel-info-form">
@@ -72,8 +72,11 @@ export function FormAddGroup(props : FormAddGroupProps) {
                 <Switch id="accessibility-input" checked={accessibility} onClick={toogleAccessibility} />
             </FormGroup>
 
-            <Button className="main-panel-info-form-button" icon="cross" intent={Intent.DANGER} type="reset" onClick={handleReset}>Annuler</Button>
+            <Link to={"."}>
+                <Button className="main-panel-info-form-button" icon="cross" intent={Intent.DANGER} type="reset" onClick={handleReset}>Annuler</Button>
+            </Link>
             <Button className="main-panel-info-form-button" icon="add" intent={Intent.SUCCESS} type="submit" onClick={handleSubmit} disabled={!isValid()}>Ajouter</Button>
+
         </div>
     </div>
 }

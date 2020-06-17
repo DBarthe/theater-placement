@@ -6,13 +6,20 @@ interface ToolbarProps {
     onClickAddGroup?: () => any
 }
 
+function removeTrailingSlash(path : string) : string {
+    if (path.endsWith('/')) {
+        path = path.slice(0, path.length - 1)
+    }
+    return path
+}
+
 export function ToolBar(props: ToolbarProps) {
     const match = useRouteMatch()
 
     return (
         <div className="main-panel-toolbar">
             <ButtonGroup>
-                <Link to={`${match.url}/add_group`}>
+                <Link to={`${removeTrailingSlash(match.url)}/add_group`}>
                     <Button icon="add" intent={"primary"}>Ajouter un groupe</Button>
                 </Link>
                 <Link to="import_groups">
