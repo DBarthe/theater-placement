@@ -38,7 +38,10 @@ function EventPage(props : EventPageProps) {
 
   const [{ data : event, isLoading, isError }, setUrl, doFetch] = useFetch<Event>(`/events/${id}`)
 
-  
+  useEffect(() => {
+      setUrl(`/events/${id}`)
+  }, [id])
+
   useEffect(() => {
     if (!event) {
       props.setTitle(undefined)
@@ -47,7 +50,7 @@ function EventPage(props : EventPageProps) {
       const date = new Date(Date.parse(event.show_date))
       props.setTitle(`${event.name} ${date.toLocaleDateString('fr-FR')}`)
     }
-  }, [event])
+  }, [event, props])
 
   return <>
   {/* <div style={{position: "absolute", top: "200px"}}>

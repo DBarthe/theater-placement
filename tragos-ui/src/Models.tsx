@@ -31,7 +31,7 @@ export interface Requirements {
 }
 
 export interface Event {
-    id: string
+    _id: string
     show_date: string
     venue_id: string
     name: string

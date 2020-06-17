@@ -23,20 +23,20 @@ export function FormAddGroup(props : FormAddGroupProps) {
         return name.length > 0
     }, [name])
 
-    const handleSubmit = useCallback(async () => {
-        await Axios.post(`/events/${id}/groups`, {
-            name, size, accessibility
-        })
-        handleReset()
-        props.refreshEvent()
-    }, [id, name, size, accessibility])
-
     const handleReset = useCallback(() => {
         setName("");
         setSize(1);
         setAccessibility(false);
     }, [])
 
+
+    const handleSubmit = useCallback(async () => {
+        await Axios.post(`/events/${id}/groups`, {
+            name, size, accessibility
+        })
+        handleReset()
+        props.refreshEvent()
+    }, [id, name, size, accessibility, handleReset, props])
 
     return <div className="bp3-card main-panel-info-card">
         <h3 className="bp3-heading">Ajouter un groupe</h3>
@@ -73,7 +73,7 @@ export function FormAddGroup(props : FormAddGroupProps) {
             </FormGroup>
 
             <Link to={"."}>
-                <Button className="main-panel-info-form-button" icon="cross" intent={Intent.DANGER} type="reset" onClick={handleReset}>Annuler</Button>
+                <Button className="main-panel-info-form-button" icon="cross" intent={Intent.DANGER} type="reset" onClick={handleReset}>Fermer</Button>
             </Link>
             <Button className="main-panel-info-form-button" icon="add" intent={Intent.SUCCESS} type="submit" onClick={handleSubmit} disabled={!isValid()}>Ajouter</Button>
 
