@@ -10,6 +10,7 @@ import { TopBar } from './TopBar';
 import { SidePanel } from './SidePanel';
 import { MainPanel } from './MainPanel';
 import { useFetch } from './FetchReducer';
+import { Event } from './Models';
 
 function App() {
   return (
@@ -25,28 +26,22 @@ function App() {
 }
 
 
-interface Event {
-  id: string
-  show_date: string
-  venue_id: string
-  name: string
-}
 
 
 
 function EventPage() {
   let { id } = useParams();
 
-  const [{ data, isLoading, isError }, doFetch] = useFetch<Event>(`/events/${id}`)
+  const [{ data : event, isLoading, isError }, doFetch] = useFetch<Event>(`/events/${id}`)
 
   return <>
-  <div style={{position: "absolute", top: "200px"}}>
+  {/* <div style={{position: "absolute", top: "200px"}}>
     <p>{ data ? data.name : "" }</p>
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
-    </div>
-    {/* <SidePanel />
-    <MainPanel /> */}
+    </div> */}
+    <SidePanel group_queue={event?.requirements.group_queue || []}/>
+    <MainPanel/>
   </>
 }
 
