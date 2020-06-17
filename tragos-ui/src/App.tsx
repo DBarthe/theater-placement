@@ -32,7 +32,7 @@ function App() {
 function EventPage() {
   let { id } = useParams();
 
-  const [{ data : event, isLoading, isError }, doFetch] = useFetch<Event>(`/events/${id}`)
+  const [{ data : event, isLoading, isError }, setUrl, doFetch] = useFetch<Event>(`/events/${id}`)
 
   return <>
   {/* <div style={{position: "absolute", top: "200px"}}>
@@ -41,7 +41,7 @@ function EventPage() {
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
     <SidePanel group_queue={event?.requirements.group_queue || []}/>
-    <MainPanel/>
+    <MainPanel refreshEvent={doFetch}/>
   </>
 }
 

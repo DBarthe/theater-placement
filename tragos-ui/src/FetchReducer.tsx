@@ -36,18 +36,19 @@ function fetchReducer<T>(state: FetchState<T>, action: FetchAction<T>): FetchSta
 };
 
 
-export function useFetch<T>(initialUrl: string, initialData?: T): [FetchState<T>, Dispatch<SetStateAction<string>>] {
+export function useFetch<T>(initialUrl: string, initialData?: T): 
+    [FetchState<T>, Dispatch<SetStateAction<string>>, () => () => void] {
 
     const [url, setUrl] = useState<string>(initialUrl)
 
+
     const [state, dispatch] = useReducer<FetchReducer<T>>(fetchReducer, {
-        // const [state, dispatch] = useReducer(fetchReducer, {
         isLoading: false,
         isError: false,
         data: initialData,
     });
 
-    useEffect(() => {
+    const doFetch = () => {
         let didCancel = false;
 
         const fetchData = async () => {
@@ -71,7 +72,9 @@ export function useFetch<T>(initialUrl: string, initialData?: T): [FetchState<T>
         return () => {
             didCancel = true;
         };
-    }, [url]);
+    }
 
-    return [state, setUrl];
+    useEffect(doFetch, [url]);
+
+    return [state, setUrl, doFetch];
 };
