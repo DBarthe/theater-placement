@@ -1,11 +1,13 @@
 from dataclasses import asdict
 from datetime import datetime
+from enum import Enum
 from typing import List, Dict
 
+import dacite
 from bson import ObjectId
 
 from tragos.database import DatabaseManager
-from tragos.models import Event, Requirements, History
+from tragos.models import Event, Requirements, History, Group
 
 
 class TragosException(Exception):
@@ -49,4 +51,11 @@ class MainService:
         event = self.events.find_one({'_id': event_id})
         if event is None:
             raise NotFoundException("No event with id={}".format({event_id}))
+        return dacite.from_dict(data_class=Event, data=event, config=dacite.Config(cast=[Enum]))
+
+    def add_group(self, event_id: ObjectId, name: str, size: int, accessibility: bool) -> Event:
+        event = self.get_event(event_id)
+        group = Group(name=name, size=size, accessibility=accessibility)
+        event.requirements.group_queue.append(group)
+        self.events.update_one({"_id": event_id}, {"$push": {'requirements.group_queue': asdict(group)}})
         return event

@@ -52,13 +52,28 @@ def create_event():
     return jsonify(event)
 
 
-get_event_schema = Schema(And(str, len, ObjectId.is_valid, Use(ObjectId)))
+object_id_schema = Schema(And(str, len, ObjectId.is_valid, Use(ObjectId)))
 
 
 @app.route("/events/<event_id>", methods=["GET"])
 def get_event(event_id: str):
-    object_id = get_event_schema.validate(event_id)
+    object_id = object_id_schema.validate(event_id)
     event = service.get_event(object_id)
+    return jsonify(event)
+
+
+add_group_schema = Schema({
+    "name": And(str, len),
+    "size": And(int, lambda size: size > 0),
+    "accessibility": bool
+})
+
+
+@app.route("/events/<event_id>/groups", methods=["POST"])
+def add_group(event_id: str):
+    event_id = object_id_schema.validate(event_id)
+    content = add_group_schema.validate(request.json)
+    event = service.add_group(event_id, **content)
     return jsonify(event)
 
 
