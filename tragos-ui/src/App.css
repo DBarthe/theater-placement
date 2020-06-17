@@ -139,6 +139,10 @@
   overflow-y: auto;
   padding: 10px;
 }
+*
+.main-panel-info-card {
+  margin-bottom: 5px;
+}
 
 .main-panel-info-form {
   margin: 20px;

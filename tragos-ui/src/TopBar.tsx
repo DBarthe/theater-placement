@@ -3,7 +3,12 @@ import { Navbar, NavbarGroup, NavbarDivider, Icon, MenuItem } from "@blueprintjs
 import { Select } from "@blueprintjs/select";
 import { Link } from 'react-router-dom';
 
-export function TopBar() {
+
+interface TopBarProps {
+    title?: string
+}
+
+export function TopBar(props : TopBarProps) {
     return (
         <Navbar className="bp3-dark topbar">
             <NavbarGroup>
@@ -27,6 +32,12 @@ export function TopBar() {
                     <Link to="/events" className="bp3-button bp3-minimal">Accès rapide <Icon icon="caret-down" style={{ marginLeft: "10px" }} /></Link>
                 </Select>
             </NavbarGroup>
+
+            { props.title &&
+                <NavbarGroup align="right">
+                    {props.title}
+                </NavbarGroup>
+            }
         </Navbar>
     );
 }

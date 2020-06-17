@@ -13,12 +13,15 @@ import { useFetch } from './FetchReducer';
 import { Event } from './Models';
 
 function App() {
+
+  const [title, setTitle] = useState<string>()
+
   return (
     <Router>
-      <TopBar />
+      <TopBar title={title} />
       <Switch>
         <Route path="/events/:id">
-          <EventPage></EventPage>
+          <EventPage setTitle={setTitle}></EventPage>
         </Route>
       </Switch>
     </Router>
@@ -26,13 +29,25 @@ function App() {
 }
 
 
+interface EventPageProps {
+  setTitle: Dispatch<SetStateAction<string | undefined>>
+}
 
-
-
-function EventPage() {
+function EventPage(props : EventPageProps) {
   let { id } = useParams();
 
   const [{ data : event, isLoading, isError }, setUrl, doFetch] = useFetch<Event>(`/events/${id}`)
+
+  
+  useEffect(() => {
+    if (!event) {
+      props.setTitle(undefined)
+    }
+    else {
+      const date = new Date(Date.parse(event.show_date))
+      props.setTitle(`${event.name} ${date.toLocaleDateString('fr-FR')}`)
+    }
+  }, [event])
 
   return <>
   {/* <div style={{position: "absolute", top: "200px"}}>
@@ -41,7 +56,7 @@ function EventPage() {
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
     <SidePanel group_queue={event?.requirements.group_queue || []}/>
-    <MainPanel refreshEvent={doFetch}/>
+    { event && <MainPanel event={event} refreshEvent={doFetch}/> }
   </>
 }
 
