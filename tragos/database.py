@@ -1,11 +1,10 @@
 from dataclasses import asdict
 
 import pymongo
-from bson import ObjectId
 from pymongo import MongoClient
 
 from tragos import Config
-from tragos.models import Venue
+from tragos.venue import create_venue
 
 
 class DatabaseManager:
@@ -15,7 +14,7 @@ class DatabaseManager:
         self.db = self.client[name]
 
     def load_initial_data(self):
-        venue = Venue(_id=ObjectId("a" * 24))
+        venue = create_venue()
         self.db["venues"].update_one({"_id": venue.id}, {"$set": asdict(venue)}, upsert=True)
 
     def events(self) -> pymongo.collection.Collection:

@@ -24,7 +24,7 @@ class Fringe:
         self._heap = []
         self._counter = itertools.count()
 
-    def push(self, state: State, cursor: int, score: int):
+    def push(self, state: State, cursor: int, score: float):
         # heapq.heappush(self._heap, (-cursor, -score, next(self._counter), state))
         heapq.heappush(self._heap, (-score, -cursor, next(self._counter), state))
 
@@ -78,7 +78,7 @@ class Implementation:
     def assign(self, group_queue: List[Group], state: State) -> Dict[Group, Tuple[int, int]]:
         raise NotImplementedError
 
-    def evaluate(self, state: State, cursor: int) -> int:
+    def evaluate(self, state: State, cursor: int) -> float:
         raise NotImplementedError
 
     def repr_state(self, state: State) -> str:

@@ -1,8 +1,9 @@
-from itertools import islice
+from itertools import islice, takewhile
+from math import sqrt
 from typing import NamedTuple, List, Dict, Generator, Tuple, Set
 
 from tragos.engine.core import State, Implementation
-from tragos.models import Group
+from tragos.models import Group, Venue
 
 
 class IndexedSlot(NamedTuple):
@@ -41,7 +42,7 @@ class BitSetIndex:
         self._value &= ~(1 << index)
 
     def inverse(self):
-        self._value = ~self._value
+        self._value = (~self._value) & ((1 << self._value.bit_length()) - 1)
 
     def iterate(self) -> Generator[int, None, None]:
         mask = 1
@@ -89,15 +90,19 @@ class BitSetIndex:
 
 class MetaState:
 
-    def __init__(self, num_rows: int, row_size: int, max_group_size: int, accessibility_rows: Set[int]):
-        self._num_rows = num_rows
-        self._row_size = row_size
-        self._num_seats = num_rows * row_size
+    def __init__(self, venue: Venue, max_group_size: int, min_distance: float):
+        self._venue = venue
+        self._num_rows = len(venue.rows)
+        self._num_seats = venue.num_seats
         self._max_group_size = max_group_size
-        self._accessibility_rows = accessibility_rows
+        self._min_distance = min_distance
+
         self.slots = self.__compute_slots()
         self.slots_by_size = self.__compute_slots_by_size()
         self.slots_by_seat = self.__compute_slots_by_seat()
+
+        self.distances = self.__compute_distances()
+
         # given a slot that we wish to occupy, return all other slots that are still available after it
         self.slots_by_safety = self.__compute_slots_by_safety()
         # return true => all accessible slots, false => all slots that do not block or occupy accessible slots
@@ -105,11 +110,11 @@ class MetaState:
 
     def __compute_slots(self) -> List[IndexedSlot]:
         slots = []
-        for row_n in range(self._num_rows):
-            for seat_n in range(self._row_size):
+        for row in self._venue.rows:
+            for seat in row.seats:
                 for group_size in range(1, self._max_group_size + 1):
-                    if seat_n + group_size <= self._row_size:
-                        slots.append(IndexedSlot(row_n=row_n, seat_n=seat_n, size=group_size))
+                    if seat.seat_n + group_size <= len(row.seats):
+                        slots.append(IndexedSlot(row_n=seat.row_n, seat_n=seat.seat_n, size=group_size))
         return slots
 
     def __compute_slots_by_size(self) -> Dict[int, BitSetIndex]:
@@ -120,13 +125,31 @@ class MetaState:
 
     def __compute_slots_by_seat(self) -> Dict[IndexedSeat, BitSetIndex]:
         slots_by_seat = {}
-        for row_n in range(self._num_rows):
-            for seat_n in range(self._row_size):
-                slots_by_seat[IndexedSeat(row_n, seat_n)] = BitSetIndex.from_list([
-                    slot.row_n == row_n and slot.seat_n <= seat_n < slot.seat_n + slot.size
+        for row in self._venue.rows:
+            for seat in row.seats:
+                slots_by_seat[IndexedSeat(seat.row_n, seat.seat_n)] = BitSetIndex.from_list([
+                    slot.row_n == seat.row_n and slot.seat_n <= seat.seat_n < slot.seat_n + slot.size
                     for slot in self.slots
                 ])
         return slots_by_seat
+
+    # TODO: replace this by R-Tree efficient spatial index
+    def __compute_distances(self) -> Dict[Tuple[int, int], List[Tuple[float, int, int]]]:
+        distances = {}
+        for row in self._venue.rows:
+            for seat in row.seats:
+                one_seat_distances = []
+                for sub_row in self._venue.rows:
+                    for sub_seat in sub_row.seats:
+                        if seat.row_n != sub_seat.row_n or seat.seat_n != sub_seat.seat_n:
+                            one_seat_distances.append((
+                                sqrt((seat.x - sub_seat.x)**2 + (seat.y - sub_seat.y) ** 2),
+                                sub_seat.row_n,
+                                sub_seat.seat_n
+                            ))
+                one_seat_distances.sort()
+                distances[(seat.row_n, seat.seat_n)] = one_seat_distances
+        return distances
 
     def __compute_slots_by_safety(self) -> List[BitSetIndex]:
         slots_by_safety = []
@@ -145,31 +168,28 @@ class MetaState:
 
     def __seats_to_block(self, slot: IndexedSlot) -> List[IndexedSeat]:
         res = []
-
-        if slot.seat_n > 0:
-            res.append(IndexedSeat(row_n=slot.row_n, seat_n=slot.seat_n - 1))
-
-        # block right side
-        if slot.seat_n + slot.size < self._row_size:
-            res.append(IndexedSeat(row_n=slot.row_n, seat_n=slot.seat_n + slot.size))
-
-        # block front side
-        if slot.row_n > 0:
-            for i in range(slot.size):
-                res.append(IndexedSeat(row_n=slot.row_n - 1, seat_n=slot.seat_n + i))
-
-        # block back side
-        if slot.row_n + 1 < self._num_rows:
-            for i in range(slot.size):
-                res.append(IndexedSeat(row_n=slot.row_n + 1, seat_n=slot.seat_n + i))
-
+        for seat_n in range(slot.seat_n, slot.seat_n + slot.size):
+            for distance, other_row_n, other_seat_n in takewhile(lambda x: x[0] < self._min_distance,
+                                                                 self.distances[(slot.row_n, seat_n)]):
+                res.append(IndexedSeat(row_n=other_row_n, seat_n=other_seat_n))
         return res
 
     def __compute_slots_by_accessibility(self) -> Dict[bool, BitSetIndex]:
-        accessible_index = BitSetIndex.from_list(
-            [slot.row_n in self._accessibility_rows for slot in self.slots])
-        non_accessible_index = BitSetIndex.intersect(
-            [self.slots_by_safety[slot_n] for slot_n in accessible_index.iterate()])
+        accessible_indices = []
+        for row in self._venue.rows:
+            for seat in row.seats:
+                if seat.accessible:
+                    accessible_indices.append(self.slots_by_seat[IndexedSeat(row_n=seat.row_n, seat_n=seat.seat_n)])
+
+        if len(accessible_indices) == 0:
+            accessible_index = BitSetIndex(size=len(self.slots), value=0)
+            non_accessible_index = BitSetIndex(size=len(self.slots), value=0)
+            non_accessible_index.inverse()
+        else:
+            accessible_index = BitSetIndex.union(accessible_indices)
+            non_accessible_index = BitSetIndex.intersect(
+                [self.slots_by_safety[slot_n] for slot_n in accessible_index.iterate()])
+
         return {True: accessible_index, False: non_accessible_index}
 
 
@@ -191,14 +211,11 @@ class IndexedState(State):
 
 class IndexedImplementation(Implementation):
 
-    def __init__(self, num_rows: int = 5, row_size: int = 5, max_group_size: int = 5,
-                 accessibility_rows: Set[int] = None, max_expand=10):
-        self._num_rows = num_rows
-        self._row_size = row_size
+    def __init__(self, venue: Venue, max_group_size: int, min_distance: float, max_expand=10):
+        self._venue = venue
         self._max_group_size = max_group_size
-        self._num_seats = num_rows * row_size
-        self._accessibility_rows = accessibility_rows if accessibility_rows is not None else set([])
-        self._meta_state = MetaState(num_rows, row_size, max_group_size, accessibility_rows)
+        self._min_distance = min_distance
+        self._meta_state = MetaState(venue, max_group_size, min_distance)
         self._max_expand = max_expand
 
     @property
@@ -239,28 +256,16 @@ class IndexedImplementation(Implementation):
         occupied_index.add(slot_n)
         return IndexedState(empty_index, occupied_index)
 
-    # def evaluate(self, state: IndexedState, cursor: int) -> int:
-    #     score = int(cursor * self._num_seats * self._num_rows * self._max_group_size * (self._max_group_size + 1) / 2)
-    #     for slot_n in state.occupied_index.iterate():
-    #         slot = self._meta_state.slots[slot_n]
-    #         score += (self._num_rows - slot.row_n) * slot.size
-    #
-    #     for slot_n in state.empty_index.iterate():
-    #         slot = self._meta_state.slots[slot_n]
-    #         score += slot.size
-    #
-    #     return score
-
     def evaluate(self, state: IndexedState, cursor: int) -> int:
-        score = cursor * self._num_seats * self._num_rows
+        score = 2 * cursor * self._venue.num_seats
 
-        for row_n in range(self._num_rows):
-            for seat_n in range(self._row_size):
-                index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat_n, row_n=row_n)]
+        for row in self._venue.rows:
+            for seat in row.seats:
+                index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat.seat_n, row_n=seat.row_n)]
                 if BitSetIndex.intersect([index, state.occupied_index]).any():
-                    score += self._num_rows - row_n
+                    score += 2 * seat.value
                 elif BitSetIndex.intersect([index, state.empty_index]).any():
-                    score += 1
+                    score += 1 * seat.value
         return score
 
     def assign(self, group_queue: List[Group], state: IndexedState) -> Dict[Group, Tuple[int, int]]:
@@ -285,14 +290,11 @@ class IndexedImplementation(Implementation):
         return result
 
     def repr_state(self, state: IndexedState) -> str:
+        # TODO: accessible place
         s = ""
-        for row_n in range(self._num_rows):
-            if row_n in self._accessibility_rows:
-                s += '>'
-            else:
-                s += ' '
-            for seat_n in range(self._row_size):
-                seat_slots_index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat_n, row_n=row_n)]
+        for row in self._venue.rows:
+            for seat in row.seats:
+                seat_slots_index = self._meta_state.slots_by_seat[IndexedSeat(seat_n=seat.seat_n, row_n=seat.row_n)]
                 if BitSetIndex.intersect([state.occupied_index, seat_slots_index]).any():
                     s += 'o'
                 elif BitSetIndex.intersect([state.empty_index, seat_slots_index]).any():

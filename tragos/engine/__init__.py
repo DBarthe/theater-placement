@@ -3,12 +3,11 @@ import argparse
 from tragos.engine.core import Manager
 from tragos.engine.grid_impl import GridImplementation
 from tragos.engine.indexed_impl import IndexedImplementation
+from tragos.venue import create_venue
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description='COVID-friendly theater placement')
-    parser.add_argument('num_rows', type=int, help='the number of rows')
-    parser.add_argument('row_size', type=int, help='the size of a row')
     parser.add_argument('max_group_size', type=int, help='the maximum size of a group')
     parser.add_argument('--max-expand', dest='max_expand', type=int, default=10, help='the max expansion factor')
     parser.add_argument('--max-num-groups', dest='max_num_groups', type=int, default=None,
@@ -19,10 +18,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     impl = IndexedImplementation(
-        num_rows=args.num_rows,
-        row_size=args.row_size,
+        venue=create_venue(),
         max_group_size=args.max_group_size,
-        accessibility_rows={0, 1},
+        min_distance=10.0,
         max_expand=args.max_expand,
     )
 
@@ -31,4 +29,4 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    main(["50", "50", "5"])
+    main(["3"])

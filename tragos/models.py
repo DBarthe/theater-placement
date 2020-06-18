@@ -8,11 +8,23 @@ from bson import ObjectId
 
 @dataclass
 class Seat:
-    name: str
-    x: float
-    y: float
+    # name displayed in the venue and printed on tickets
+    row_name: str
+    col_name: str
+
+    # Row and column index
     row_n: int
     seat_n: int
+
+    # Exact location
+    x: float
+    y: float
+
+    # specific requirement
+    accessible: bool
+
+    # value of the place according to distance and angle to center of the stage
+    value: Optional[float] = None
 
 
 @dataclass
@@ -37,8 +49,19 @@ class Group:
 
 
 @dataclass
+class Row:
+    name: str
+    row_n: int
+    seats: List[Seat]
+
+
+@dataclass
 class Venue:
+    stage_center_x: float
+    stage_center_y: float
+    num_seats: int
     _id: Optional[ObjectId] = None
+    rows: List[Row] = field(default_factory=lambda: [])
 
     @property
     def id(self):
