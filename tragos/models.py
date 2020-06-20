@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from bson import ObjectId
 
@@ -31,11 +31,13 @@ class Seat:
 class Slot:
     size: int
     row_n: int
+    seat_n: int
     seats: List[Seat]
 
 
 @dataclass
 class Group:
+    group_n: Optional[int]
     name: str
     size: int
     accessibility: bool = False
@@ -80,6 +82,8 @@ class Requirements:
     group_queue: List[Group] = field(default_factory=lambda: [])
     lock_accessibility: bool = True
     phase: Phase = Phase.NORMAL
+    max_group_size: int = 6
+    min_distance: float = 1.5
 
 
 class SeatStatus(str, Enum):
@@ -89,22 +93,35 @@ class SeatStatus(str, Enum):
 
 
 @dataclass
+class SeatSolution:
+    status: SeatStatus
+    slot_n: Optional[int] = None
+    group_n: Optional[int] = None
+
+
+@dataclass
 class Solution:
+    # true if all groups are placed, otherwise false
     success: bool
 
+    num_groups_placed: int
+    num_groups_declined: int
+
     # stats
-    num_seats_occupied = int
-    num_seats_blocked = int
-    num_seat_empty = int
-    num_groups_placed = int
-    num_groups_declined = int
-    covid_score = int
+    num_seats_occupied: int
+    num_seats_blocked: int
+    num_seats_empty: int
 
-    # group name -> slot
-    estimated_placement = Dict[str, Slot]
+    covid_score: float
 
-    # seat name -> seat status
-    seats_status = Dict[str, SeatStatus]
+    # list of slots
+    slots: List[Slot]
+
+    # group_n -> slot_n or None if no solution found
+    assignments: List[Optional[int]]
+
+    # seat (row_n, seat_n) -> seat solution
+    grid: List[List[SeatSolution]]
 
 
 @dataclass

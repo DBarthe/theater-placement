@@ -12,7 +12,6 @@ from tragos.services import TragosException, MainService, NotFoundException
 
 app = Flask('tragos')
 db = DatabaseManager.from_config()
-db.load_initial_data()
 
 service = MainService(db)
 
@@ -30,6 +29,12 @@ app.json_encoder = JSONEncoder
 @app.route('/')
 def index():
     return "hello"
+
+
+@app.route('/load_fake_data', methods=['POST'])
+def load_fake_data():
+    event = service.load_fake_data()
+    return jsonify(event)
 
 
 @app.route("/events")
@@ -75,6 +80,13 @@ def add_group(event_id: str):
     content = add_group_schema.validate(request.json)
     event = service.add_group(event_id, **content)
     return jsonify(event)
+
+
+@app.route("/events/<event_id>/compute", methods=["POST"])
+def compute_solution(event_id: str):
+    event_id = object_id_schema.validate(event_id)
+    solution = service.compute_solution(event_id)
+    return jsonify(solution)
 
 
 @app.errorhandler(NotFoundException)

@@ -1,10 +1,12 @@
+import random
 from math import sqrt, atan
 
 from bson import ObjectId
 
-from tragos.models import Row, Seat, Venue
+from tragos.models import Row, Seat, Venue, Requirements, Group
 
 
+# TODO: move this logic to a specific module
 def compute_distance_and_angle(venue: Venue, seat: Seat) -> (float, float):
     distance = sqrt((seat.x - venue.stage_center_x) ** 2 + (seat.y - venue.stage_center_y) ** 2)
     angle = atan(abs(seat.x - venue.stage_center_x) / abs(seat.y - venue.stage_center_y))
@@ -56,3 +58,15 @@ def create_venue() -> Venue:
     venue = Venue(_id=ObjectId("a" * 24), num_seats=10, rows=rows, stage_center_x=2.5, stage_center_y=0)
     compute_all_seats_value(venue)
     return venue
+
+
+def create_requirements(num_groups: int, min_distance: float) -> Requirements:
+    requirements = Requirements(min_distance=min_distance)
+    requirements.group_queue = [
+        Group(group_n=i,
+              name="Groupe {}".format(i),
+              size=random.randint(1, requirements.max_group_size),
+              accessibility=False)
+        for i in range(num_groups)]
+
+    return requirements

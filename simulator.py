@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import tragos.engine
 
 if __name__ == '__main__':
