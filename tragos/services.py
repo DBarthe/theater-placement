@@ -80,4 +80,5 @@ class MainService:
         event = self.get_event(event_id)
         venue = self.get_venue(event.venue_id)
         solution = engine.start(venue=venue, requirements=event.requirements)
+        self.events.update_one({"_id": event_id}, {"$set": {'solution': asdict(solution)}})
         return solution

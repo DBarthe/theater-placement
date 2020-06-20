@@ -1,27 +1,11 @@
-import React, { } from 'react';
+import React, { useEffect } from 'react';
 import { VenueMap } from './VenueMap';
 import { ToolBar } from './ToolBar';
-import { Venue, Seat, Event } from './Models';
+import { Event, Venue } from './Models';
 import { useRouteMatch, Route, Switch as SwitchRoute } from 'react-router-dom';
 import { FormAddGroup } from './GroupForms';
-import { Divider, ProgressBar, Label } from '@blueprintjs/core';
-
-
-const VENUE: Venue = {
-    width: 5,
-    height: 6,
-    defaultSeatHeight: 0.8,
-    defaultSeatWidth: 0.8
-}
-
-const SEATS: Seat[] = [
-    { name: "A1", x: 1, y: 1 },
-    { name: "A2", x: 2, y: 1 },
-    { name: "A3", x: 3, y: 1 },
-    { name: "A4", x: 4, y: 1 }
-]
-
-
+import { ProgressBar, Label } from '@blueprintjs/core';
+import { useFetch } from './FetchReducer';
 
 interface StatsViewProps {
     event: Event
@@ -29,7 +13,6 @@ interface StatsViewProps {
 
 function StatsView(props: StatsViewProps) {
 
-    const date = new Date(Date.parse(props.event.show_date))
 
     return (
         <div className="bp3-card main-panel-info-card">
@@ -79,6 +62,12 @@ interface MainPanelProps {
 }
 export function MainPanel(props: MainPanelProps) {
 
+    const [{ data : venue, isLoading, isError }, setUrl, doFetch] = useFetch<Venue>(`/venues/${props.event.venue_id}`)
+
+    useEffect(() => {
+        setUrl(`/venues/${props.event.venue_id}`)
+    }, [props.event.venue_id])
+
     return (
         <div className="main-panel">
             <ToolBar onClickAddGroup={() => null} />
@@ -86,7 +75,9 @@ export function MainPanel(props: MainPanelProps) {
                 <PanelInfo event={props.event} refreshEvent={props.refreshEvent} />
             </div>
             <div className="main-panel-map">
-                <VenueMap venue={VENUE} seats={SEATS}></VenueMap>
+                { venue &&
+                    <VenueMap venue={venue} requirements={props.event.requirements} solution={props.event.solution}></VenueMap> 
+                }
             </div>
         </div>
     );

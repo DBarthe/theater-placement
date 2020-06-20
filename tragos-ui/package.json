@@ -18,6 +18,7 @@
     "@types/react-router-dom": "^5.1.5",
     "axios": "^0.19.2",
     "flatbush": "^3.3.0",
+    "font-awesome": "^4.7.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-icons": "^3.10.0",

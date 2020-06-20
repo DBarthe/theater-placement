@@ -67,6 +67,13 @@ def get_event(event_id: str):
     return jsonify(event)
 
 
+@app.route("/venues/<venue_id>", methods=["GET"])
+def get_venue(venue_id: str):
+    object_id = object_id_schema.validate(venue_id)
+    venue = service.get_venue(object_id)
+    return jsonify(venue)
+
+
 add_group_schema = Schema({
     "name": And(str, len),
     "size": And(int, lambda size: size > 0),
@@ -91,6 +98,16 @@ def compute_solution(event_id: str):
 
 @app.errorhandler(NotFoundException)
 def handle_not_found_error(e: NotFoundException):
+    traceback.print_exc()
+    return jsonify(error={
+        "code": 404,
+        "type": "not_found",
+        "message": str(e)
+    }), 404
+
+
+@app.errorhandler(404)
+def handle_page_not_found_error(e: Exception):
     traceback.print_exc()
     return jsonify(error={
         "code": 404,

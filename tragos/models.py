@@ -62,6 +62,10 @@ class Venue:
     stage_center_x: float
     stage_center_y: float
     num_seats: int
+    height: float
+    width: float
+    default_seat_width: float
+    default_seat_height: float
     _id: Optional[ObjectId] = None
     rows: List[Row] = field(default_factory=lambda: [])
 

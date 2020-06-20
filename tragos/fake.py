@@ -55,7 +55,11 @@ def create_venue() -> Venue:
         ])
     ]
 
-    venue = Venue(_id=ObjectId("a" * 24), num_seats=10, rows=rows, stage_center_x=2.5, stage_center_y=0)
+    venue = Venue(_id=ObjectId("a" * 24), num_seats=10, rows=rows,
+                  stage_center_x=2.5, stage_center_y=0,
+                  default_seat_height=0.7, default_seat_width=0.7,
+                  width=7, height=7
+                  )
     compute_all_seats_value(venue)
     return venue
 

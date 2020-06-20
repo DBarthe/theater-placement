@@ -1,11 +1,13 @@
 import React from 'react';
 import Flatbush from 'flatbush';
 import { FullParentSizeCanvas } from './Canvas';
-import { Venue, Seat } from './Models';
+import { Venue, Seat, Requirements, Solution, SeatStatus } from './Models';
+import { assert } from 'console';
 
 export interface VenueMapProps {
     venue: Venue
-    seats: Seat[]
+    requirements: Requirements
+    solution: Solution | null
 }
 
 export function VenueMap(props: VenueMapProps) {
@@ -21,14 +23,12 @@ export function VenueMap(props: VenueMapProps) {
 
         return withCanvas(canvas => {
 
-            console.log("toto");
             if (drawerRef.current === null
                 || lastCanvasDimension.current?.h !== canvas.height
                 || lastCanvasDimension.current?.w !== canvas.width) {
 
-                console.log("tata");
                 lastCanvasDimension.current = { h: canvas.height, w: canvas.width };
-                drawerRef.current = new VenueMapDrawer(props.venue, props.seats, canvas, selected?.name);
+                drawerRef.current = new VenueMapDrawer(props.venue, props.requirements, props.solution, canvas, selected);
             }
 
             return f(drawerRef.current, ...args);
@@ -68,7 +68,7 @@ export function VenueMap(props: VenueMapProps) {
             const seat = drawer.pixel2Seat(x, y);
             if (seat !== null) {
                 setSelected(seat);
-                drawer.setSelected(seat.name);
+                drawer.setSelected(seat);
             }
             else {
                 setSelected(null);
@@ -104,14 +104,18 @@ class VenueMapDrawer {
     private offsetX: number;
     private offsetY: number;
 
-    private boxesIndex: { [name: string]: BoundingBox };
+    private seats: Seat[];
+
+    private boxesIndex: { [index: string]: BoundingBox };
     private spatialIndex: Flatbush;
+
 
     constructor(
         private venue: Venue,
-        private seats: Seat[],
+        private requirements: Requirements,
+        private solution: Solution | null,
         private canvas: HTMLCanvasElement,
-        private selected: string | null = null
+        private selected: Seat | null = null
     ) {
 
         console.log("recomputing drawer")
@@ -123,6 +127,9 @@ class VenueMapDrawer {
         this.ratioTranslation = Math.min(canvas.width / venue.width, canvas.height / venue.height)
         this.offsetX = canvas.width - venue.width * this.ratioTranslation
         this.offsetY = canvas.height - venue.height * this.ratioTranslation
+
+        this.seats = venue.rows.flatMap(row => row.seats);
+
         const [boxesIndex, spatialIndex] = this.computeIndexes()
         this.boxesIndex = boxesIndex
         this.spatialIndex = spatialIndex
@@ -130,8 +137,8 @@ class VenueMapDrawer {
 
     private seatBoundingBox(seat: Seat): BoundingBox {
         const { x, y } = this.position2Pixel(seat.x, seat.y)
-        const width = this.size2Pixels(this.venue.defaultSeatWidth)
-        const height = this.size2Pixels(this.venue.defaultSeatHeight)
+        const width = this.size2Pixels(this.venue.default_seat_width)
+        const height = this.size2Pixels(this.venue.default_seat_height)
 
         const cornerX = x - width / 2
         const cornerY = y - height / 2
@@ -145,11 +152,11 @@ class VenueMapDrawer {
     }
 
     private computeIndexes(): [{ [name: string]: BoundingBox }, Flatbush] {
-        const boxesIndex: { [name: string]: BoundingBox } = {}
+        const boxesIndex: { [index: string]: BoundingBox } = {}
         const spatialIndex = new Flatbush(this.seats.length)
         for (const seat of this.seats) {
             const boundingBox = this.seatBoundingBox(seat)
-            boxesIndex[seat.name] = boundingBox
+            boxesIndex[[seat.row_n, seat.seat_n].toString()] = boundingBox
             spatialIndex.add(boundingBox.x, boundingBox.y, boundingBox.x + boundingBox.w, boundingBox.y + boundingBox.h)
         }
         spatialIndex.finish()
@@ -167,21 +174,80 @@ class VenueMapDrawer {
     private size2Pixels(size: number): number {
         return size * this.ratioTranslation
     }
-    
+
     private drawSeats() {
 
         this.seats.forEach((seat) => {
-            const box = this.boxesIndex[seat.name]
+            const box = this.boxesIndex[[seat.row_n, seat.seat_n].toString()]
+            let selected = false;
 
-            if (seat.name === this.selected) {
-                this.ctx.fillStyle = 'yellow'
-            }
-            else {
-                this.ctx.fillStyle = 'green'
+            if (seat.row_n === this.selected?.row_n && seat.seat_n === this.selected?.seat_n) {
+                selected = true;
             }
 
+            const [x, y, w, h] = [Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h)]
 
-            this.ctx.fillRect(Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h))
+            this.ctx.fillStyle = "green";
+            this.ctx.fillRect(x, y, w, h)
+
+            if (selected) {
+                this.ctx.strokeStyle = "white"
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeRect(x, y, w, h)
+            }
+
+            // seat name
+            this.ctx.textAlign = "start";
+            this.ctx.textBaseline = 'top';
+            this.ctx.font = `${w / 3}px Arial`;
+            this.ctx.fillStyle = "white";
+            this.ctx.fillText(seat.row_name + seat.col_name, x + 2, y + 2);
+
+            if (this.solution) {
+
+                const seat_solution = this.solution.grid[seat.row_n][seat.seat_n]
+
+                if (seat_solution.status === SeatStatus.OCCUPIED) {
+                    //seat occupied
+                    this.ctx.font = `${w / 2}px FontAwesome`;
+                    this.ctx.fillStyle = "white";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('\uF007', Math.round(x + w / 2), Math.round(y + h / 2));
+
+                    if (seat_solution.group_n === null) {
+                        throw new Error("inconsitent state : seat_solution has no group_n")
+                    }
+                    const group = this.requirements.group_queue[seat_solution.group_n];
+
+                    if (group.slot !== null) {
+                        // seat locked
+                        this.ctx.font = `${w / 2}px FontAwesome`;
+                        this.ctx.fillStyle = "white";
+                        this.ctx.textAlign = "end";
+                        this.ctx.textBaseline = 'bottom';
+                        this.ctx.fillText('\uF023', Math.round(x + w), Math.round(y + h));
+                    }
+
+                }
+                else if (seat_solution.status === SeatStatus.BLOCKED) {
+                    // seat blocked
+                    this.ctx.font = `${w / 2}px FontAwesome`;
+                    this.ctx.fillStyle = "white";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('\uF05e', Math.round(x + w / 2), Math.round(y + h / 2));
+                }
+            }
+
+            if (seat.accessible) {
+                // seat accessible
+                this.ctx.font = `${w / 2}px FontAwesome`;
+                this.ctx.fillStyle = "white";
+                this.ctx.textAlign = "start";
+                this.ctx.textBaseline = 'bottom';
+                this.ctx.fillText('\uF193', Math.round(x), Math.round(y + h));
+            }
         })
     }
 
@@ -190,8 +256,8 @@ class VenueMapDrawer {
         return matches.length === 0 ? null : this.seats[matches[0]];
     }
 
-    setSelected(name: string | null) {
-        this.selected = name
+    setSelected(seat: Seat | null) {
+        this.selected = seat
     }
 
     draw() {

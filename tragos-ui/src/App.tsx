@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Switch, Route, useParams } from 'react-router-
 
 import "normalize.css";
 import "@blueprintjs/core/lib/css/blueprint.css";
+import 'font-awesome/css/font-awesome.min.css';
 
 import './App.css';
 
