@@ -17,7 +17,8 @@ export function TopBar(props : TopBarProps) {
 
     const history = useHistory();
 
-    const [{ data : events, isLoading, isError }, setUrl, doFetch] = useFetch<EventList>(`/events`)
+    const eventsFetcher = useFetch<EventList>(`/events`)
+    const events = eventsFetcher.state.data;
 
     return (
         <Navbar className="bp3-dark topbar">

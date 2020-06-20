@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useReducer, SetStateAction, Dispatch } from 'react';
+import React, { useEffect, useState, useReducer, SetStateAction, Dispatch, useMemo } from 'react';
 import { BrowserRouter as Router, Switch, Route, useParams } from 'react-router-dom';
 
 import "normalize.css";
@@ -11,7 +11,7 @@ import { TopBar } from './TopBar';
 import { SidePanel } from './SidePanel';
 import { MainPanel } from './MainPanel';
 import { useFetch } from './FetchReducer';
-import { Event } from './Models';
+import { Event, Venue } from './Models';
 
 function App() {
 
@@ -34,14 +34,29 @@ interface EventPageProps {
   setTitle: Dispatch<SetStateAction<string | undefined>>
 }
 
-function EventPage(props : EventPageProps) {
+function EventPage(props: EventPageProps) {
   let { id } = useParams();
 
-  const [{ data : event, isLoading, isError }, setUrl, doFetch] = useFetch<Event>(`/events/${id}`)
+  const eventFetcher = useFetch<Event>(`/events/${id}`)
+  const event = eventFetcher.state.data;
+
+  const venueFetcher = useFetch<Venue>(null);
+  const venue = venueFetcher.state.data;
 
   useEffect(() => {
-      setUrl(`/events/${id}`)
+    eventFetcher.setUrl(`/events/${id}`)
   }, [id])
+
+
+  useEffect(() => {
+    if (eventFetcher.state.data !== null) {
+      venueFetcher.setUrl(`/venues/${eventFetcher.state.data?.venue_id}`)
+    }
+    else {
+      venueFetcher.setUrl(null)
+    }
+  }, [event?.venue_id])
+
 
   useEffect(() => {
     if (!event) {
@@ -54,13 +69,13 @@ function EventPage(props : EventPageProps) {
   }, [event, props])
 
   return <>
-  {/* <div style={{position: "absolute", top: "200px"}}>
+    {/* <div style={{position: "absolute", top: "200px"}}>
     <p>{ data ? data.name : "" }</p>
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
-    <SidePanel group_queue={event?.requirements.group_queue || []}/>
-    { event && <MainPanel event={event} refreshEvent={doFetch}/> }
+    <SidePanel group_queue={event?.requirements.group_queue || []} />
+    {event && venue && <MainPanel event={event} venue={venue} requirements={event.requirements} solution={event.solution} refreshEvent={eventFetcher.refresh} />}
   </>
 }
 

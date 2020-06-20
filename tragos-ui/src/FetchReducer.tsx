@@ -35,11 +35,16 @@ function fetchReducer<T>(state: FetchState<T>, action: FetchAction<T>): FetchSta
     }
 };
 
+export interface Fetcher<T> {
+    state: FetchState<T>
+    setUrl: Dispatch<SetStateAction<string|null>>,
+    refresh: () => () => void
+}
 
-export function useFetch<T>(initialUrl: string, initialData?: T): 
-    [FetchState<T>, Dispatch<SetStateAction<string>>, () => () => void] {
 
-    const [url, setUrl] = useState<string>(initialUrl)
+export function useFetch<T>(initialUrl: string|null, initialData?: T): Fetcher<T> {
+
+    const [url, setUrl] = useState<string|null>(initialUrl)
 
 
     const [state, dispatch] = useReducer<FetchReducer<T>>(fetchReducer, {
@@ -50,6 +55,10 @@ export function useFetch<T>(initialUrl: string, initialData?: T):
 
     const doFetch = () => {
         let didCancel = false;
+
+        if (url === null) {
+            return () => {}
+        }
 
         const fetchData = async () => {
             dispatch({ type: 'FETCH_INIT' });
@@ -76,5 +85,5 @@ export function useFetch<T>(initialUrl: string, initialData?: T):
 
     useEffect(doFetch, [url]);
 
-    return [state, setUrl, doFetch];
+    return {state, setUrl, refresh: doFetch};
 };
