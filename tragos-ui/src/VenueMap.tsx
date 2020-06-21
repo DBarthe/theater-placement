@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useLayoutEffect } from 'react';
 import Flatbush from 'flatbush';
 import { FullParentSizeCanvas } from './Canvas';
 import { Venue, Seat, Requirements, Solution, SeatStatus, Group } from './Models';
@@ -10,12 +10,43 @@ export interface VenueMapProps {
     hoveredGroup: Group | null
 }
 
+const useMemoizedCallback = (callback : any, inputs: any[] = []) => {
+    // Instance var to hold the actual callback.
+    const callbackRef = React.useRef(callback);
+
+    // The memoized callback that won't change and calls the changed callbackRef.
+    const memoizedCallback = React.useCallback((...args) => {
+      return callbackRef.current(...args);
+    }, []);
+
+    // The callback that is constantly updated according to the inputs.
+    const updatedCallback = React.useCallback(callback, inputs);
+
+    // The effect updates the callbackRef depending on the inputs.
+    React.useEffect(() => {
+        callbackRef.current = updatedCallback;
+    }, inputs);
+
+    // Return the memoized callback.
+    return memoizedCallback;
+};
+
+
+
 export function VenueMap(props: VenueMapProps) {
+
+    const { venue, requirements, solution, hoveredGroup } = props;
 
     const canvasRef = React.createRef<HTMLCanvasElement>();
     const drawerRef = React.useRef<VenueMapDrawer | null>(null);
     const lastCanvasDimension = React.useRef<{ h: number; w: number; } | null>(null);
     const [selected, setSelected] = React.useState<Seat | null>(null);
+
+    const [needRebuild, setNeedRebuild] = React.useState<boolean>(false);
+    const [needRedraw, setNeedRedraw] = React.useState<boolean>(false);
+
+
+    const [dimension, setDimension] = React.useState<{w: number, h: number}>({w: 0, h: 0});
 
 
     function withDrawer<T extends any[] | []>(
@@ -23,13 +54,17 @@ export function VenueMap(props: VenueMapProps) {
 
         return withCanvas(canvas => {
 
-            if (drawerRef.current === null
+            if (needRebuild || drawerRef.current === null
                 || lastCanvasDimension.current?.h !== canvas.height
                 || lastCanvasDimension.current?.w !== canvas.width) {
 
                 lastCanvasDimension.current = { h: canvas.height, w: canvas.width };
                 drawerRef.current = new VenueMapDrawer(props.venue, props.requirements, props.solution, canvas, selected, props.hoveredGroup);
+                setNeedRebuild(false)
             }
+            
+            drawerRef.current.setSelected(selected)
+            drawerRef.current.setHoveredGroup(hoveredGroup)
 
             return f(drawerRef.current, ...args);
         });
@@ -58,33 +93,46 @@ export function VenueMap(props: VenueMapProps) {
         f(canvas, ...args);
     }
 
-    function handleDraw() {
-        withDrawer(drawer => drawer.draw());
-    }
-
-    function handleClick(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+    const handleClick = useMemoizedCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
         withDrawer(drawer => {
             const { x, y } = getCursorPosition(event);
             const seat = drawer.pixel2Seat(x, y);
             if (seat !== null) {
                 setSelected(seat);
-                drawer.setSelected(seat);
             }
             else {
                 setSelected(null);
-                drawer.setSelected(null);
+                
             }
-
-            drawer.draw();
         });
-    }
+    }, [drawerRef, canvasRef, needRebuild, selected, props]);
+
+    useEffect(() => {
+        setNeedRebuild(true)
+        setSelected(null)
+    }, [venue, requirements, solution])
+
+
+    useEffect(() => {
+        setNeedRebuild(true)
+    }, [dimension])
+
+    useLayoutEffect(() => {
+        setNeedRedraw(true)
+    }, [selected, hoveredGroup]);
+
+    useLayoutEffect(() => {
+        if (needRedraw || needRebuild) {
+            withDrawer(drawer => drawer.draw());
+            setNeedRebuild(false)
+            setNeedRedraw(false)
+        }
+    });
 
     return (
-        <FullParentSizeCanvas ref={canvasRef} onClick={handleClick} draw={handleDraw} />
+        <FullParentSizeCanvas ref={canvasRef} dimension={dimension} setDimension={setDimension} onClick={handleClick} />
     );
 }
-
-
 
 interface BoundingBox {
     x: number
@@ -230,6 +278,12 @@ class VenueMapDrawer {
                         this.ctx.fillText('\uF023', Math.round(x + w), Math.round(y + h));
                     }
 
+                    if (this.hoveredGroup?.group_n === group.group_n) {
+                        this.ctx.strokeStyle = "red"
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(x, y, w, h)
+                    }
+
                 }
                 else if (seat_solution.status === SeatStatus.BLOCKED) {
                     // seat blocked
@@ -259,6 +313,10 @@ class VenueMapDrawer {
 
     setSelected(seat: Seat | null) {
         this.selected = seat
+    }
+
+    setHoveredGroup(group: Group | null) {
+        this.hoveredGroup = group
     }
 
     draw() {

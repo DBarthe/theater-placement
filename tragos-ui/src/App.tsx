@@ -51,13 +51,13 @@ function EventPage(props: EventPageProps) {
 
 
   useEffect(() => {
-    if (eventFetcher.state.data !== null) {
-      venueFetcher.setUrl(`/venues/${eventFetcher.state.data?.venue_id}`)
+    if (event) {
+      venueFetcher.setUrl(`/venues/${event.venue_id}`)
     }
     else {
       venueFetcher.setUrl(null)
     }
-  }, [event?.venue_id])
+  }, [event])
 
 
   useEffect(() => {

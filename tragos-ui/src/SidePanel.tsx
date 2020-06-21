@@ -11,14 +11,15 @@ interface SidePanelProps {
 
 export function SidePanel(props: SidePanelProps) {
 
+
     const handleMouseEnter = useCallback(event => {
         const group_n = parseInt(event.target.getAttribute("data-group-n"))
         props.setHoveredGroup(props.group_queue[group_n])
-    }, []);
+    }, [props.setHoveredGroup, props.group_queue]);
 
     const handleMouseLeave = useCallback(event => {
         props.setHoveredGroup(null)
-    }, []);
+    }, [props.setHoveredGroup, props.group_queue]);
 
     return (
         <div className="side-panel bp3-card">
