@@ -1,4 +1,4 @@
-import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
+import React, { useEffect, useState, SetStateAction, Dispatch, useCallback } from 'react';
 import { BrowserRouter as Router, Switch, Route, useParams, useRouteMatch } from 'react-router-dom';
 
 import "normalize.css";
@@ -52,7 +52,7 @@ function EventPage(props: EventPageProps) {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
   // not sure we need this
-  const [, setGroupOfSelectedSeat] = useState<Group | null>(null);
+  const [groupOfSelectedSeat, setGroupOfSelectedSeat] = useState<Group | null>(null);
 
   useEffect(() => {
     eventFetcher.setUrl(`/events/${id}`)
@@ -102,7 +102,7 @@ function EventPage(props: EventPageProps) {
     />
     {event && venue &&
       <div className="main-panel">
-        <ToolBar onClickAddGroup={() => null} />
+        <ToolBar event={event} refreshEvent={eventFetcher.refresh} />
         <div className="main-panel-info">
           <Switch>
             <Route path={`${match.path}/add_group`}>

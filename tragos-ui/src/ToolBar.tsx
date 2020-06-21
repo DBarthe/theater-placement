@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button, Classes, Icon, Divider, ButtonGroup, Switch as BpSwitch, RadioGroup, Radio, Popover, ControlGroup } from "@blueprintjs/core";
 import { Link, useRouteMatch } from 'react-router-dom';
+import Axios from 'axios';
+import {Event} from './Models'
 
 interface ToolbarProps {
-    onClickAddGroup?: () => any
+    refreshEvent: () => any
+    event: Event
 }
 
 function removeTrailingSlash(path : string) : string {
@@ -15,6 +18,14 @@ function removeTrailingSlash(path : string) : string {
 
 export function ToolBar(props: ToolbarProps) {
     const match = useRouteMatch()
+    const [computing, setComputing] = useState<boolean>(false);
+
+    const recompute = useCallback(async () => {
+        setComputing(true)
+        await Axios.post(`/events/${props.event._id}/compute`)
+        setComputing(false)
+        props.refreshEvent()
+      }, [props.event, props.refreshEvent])
 
     return (
         <div className="main-panel-toolbar">
@@ -26,7 +37,7 @@ export function ToolBar(props: ToolbarProps) {
                     <Button icon="import" intent={"primary"}>Importer un fichier</Button>
                 </Link>
             </ButtonGroup>
-            <Button icon="refresh" intent={"success"} className="main-panel-toolbar-item">Recalculer</Button>
+            <Button icon="refresh" intent={"success"} className="main-panel-toolbar-item" disabled={computing} onClick={recompute}>Recalculer</Button>
             <Button icon="take-action" intent={"warning"} className="main-panel-toolbar-item">Placer les arrivés</Button>
             <ButtonGroup minimal={false} className="main-panel-toolbar-item">
                 <Button icon="undo" intent={"none"}></Button>
