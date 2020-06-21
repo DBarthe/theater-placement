@@ -39,7 +39,7 @@ export function FormAddGroup(props : FormAddGroupProps) {
     }, [id, name, size, accessibility, handleReset, props])
 
     return <div className="bp3-card main-panel-info-card">
-        <h3 className="bp3-heading">Ajouter un groupe</h3>
+        <h6 className="bp3-heading">Ajouter un groupe</h6>
         <Divider></Divider>
         <div className="main-panel-info-form">
 

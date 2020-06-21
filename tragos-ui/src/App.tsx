@@ -1,4 +1,4 @@
-import React, { useEffect, useState, SetStateAction, Dispatch, useCallback } from 'react';
+import React, { useEffect, useState, SetStateAction, Dispatch, useCallback, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Switch, Route, useParams, useRouteMatch } from 'react-router-dom';
 
 import "normalize.css";
@@ -15,6 +15,8 @@ import { Event, Venue, Group, Seat } from './Models';
 import { ToolBar } from './ToolBar';
 import { VenueMap } from './VenueMap';
 import { FormAddGroup } from './GroupForms';
+import { Label } from '@blueprintjs/core';
+import { GroupDetails } from './GroupDetails';
 
 function App() {
 
@@ -24,9 +26,13 @@ function App() {
     <Router>
       <TopBar title={title} />
       <Switch>
-        <Route path="/events/:id">
-          <EventPage setTitle={setTitle}></EventPage>
-        </Route>
+
+        <Route path="/events/:id/groups/:group_n" render={({ match: { url, params: { id, group_n } } }) => (
+          <EventPage id={id} group_n={parseInt(group_n)} setTitle={setTitle}></EventPage>
+        )} />
+        <Route path="/events/:id" render={({ match: { url, params: { id } } }) => (
+          <EventPage id={id} group_n={null} setTitle={setTitle}></EventPage>
+        )} />
       </Switch>
     </Router>
   );
@@ -35,10 +41,12 @@ function App() {
 
 interface EventPageProps {
   setTitle: Dispatch<SetStateAction<string | undefined>>
+  id: string
+  group_n: number | null
 }
 
 function EventPage(props: EventPageProps) {
-  let { id } = useParams();
+  const { id, group_n, setTitle } = props;
   let match = useRouteMatch();
 
   const eventFetcher = useFetch<Event>(`/events/${id}`)
@@ -50,6 +58,15 @@ function EventPage(props: EventPageProps) {
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
   const [hoveredGroup, setHoveredGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  useLayoutEffect(() => {
+    if (event !== undefined && group_n !== null) {
+      setSelectedGroup(event.requirements.group_queue[group_n])
+    }
+    else {
+      setSelectedGroup(null)
+    }
+  }, [event, group_n])
 
   // not sure we need this
   const [groupOfSelectedSeat, setGroupOfSelectedSeat] = useState<Group | null>(null);
@@ -71,11 +88,11 @@ function EventPage(props: EventPageProps) {
 
   useEffect(() => {
     if (!event) {
-      props.setTitle(undefined)
+      setTitle(undefined)
     }
     else {
       const date = new Date(Date.parse(event.show_date))
-      props.setTitle(`${event.name} ${date.toLocaleDateString('fr-FR')}`)
+      setTitle(`${event.name} ${date.toLocaleDateString('fr-FR')}`)
     }
   }, [event, props])
 
@@ -94,22 +111,23 @@ function EventPage(props: EventPageProps) {
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
-    <SidePanel group_queue={event?.requirements.group_queue || []}
+    <SidePanel baseUrl={`/events/${id}`} group_queue={event?.requirements.group_queue || []}
       setHoveredGroup={setHoveredGroup}
       selectedGroup={selectedGroup}
-      setSelectedGroup={setSelectedGroup}
       solution={event?.solution || null}
     />
     {event && venue &&
       <div className="main-panel">
-        <ToolBar event={event} refreshEvent={eventFetcher.refresh} />
+        <ToolBar event={event} baseUrl={`/events/${id}`} refreshEvent={eventFetcher.refresh} />
         <div className="main-panel-info">
           <Switch>
             <Route path={`${match.path}/add_group`}>
               <FormAddGroup refreshEvent={eventFetcher.refresh} />
             </Route>
             <Route path={match.path}>
-              <></>
+              {
+                selectedGroup && <GroupDetails group={selectedGroup}></GroupDetails>
+              }
             </Route>
           </Switch>
           <StatsView event={event} solution={event.solution} venue={venue} />
@@ -124,5 +142,6 @@ function EventPage(props: EventPageProps) {
       </div>}
   </>
 }
+
 
 export default App;

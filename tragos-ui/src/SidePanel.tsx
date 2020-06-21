@@ -2,16 +2,18 @@ import React, { useCallback, ReactNode } from 'react';
 import { Group, Seat, Solution } from './Models';
 import { MdAccessible } from 'react-icons/md';
 import { Icon } from '@blueprintjs/core';
+import { useHistory } from 'react-router-dom';
 
 interface SidePanelProps {
     group_queue: Group[]
     setHoveredGroup: (group: Group | null) => any
     selectedGroup: Group | null
-    setSelectedGroup: (group: Group | null) => any
+    baseUrl: string
     solution: Solution | null;
 }
 
 export function SidePanel(props: SidePanelProps) {
+    const history = useHistory();
 
     const handleMouseEnter = useCallback(event => {
         const group_n = parseInt(event.target.getAttribute("data-group-n"))
@@ -24,22 +26,26 @@ export function SidePanel(props: SidePanelProps) {
 
     const handleClick = useCallback(event => {
         const group_n = parseInt(event.target.getAttribute("data-group-n"))
-        props.setSelectedGroup(props.group_queue[group_n])
-    }, [props.setSelectedGroup, props.group_queue]);
+        history.push(`${props.baseUrl}/groups/${group_n}`)
+        event.stopPropagation()
+    }, [history, props.group_queue, props.baseUrl]);
 
+    const handleClickOutside = useCallback(event => {
+        history.push(`${props.baseUrl}`)
+    }, [history,  props.baseUrl]);
 
     function groupListItem(group: Group): ReactNode {
 
         let assignIcon;
 
         if (props.solution === null || group.group_n >= props.solution.assignments.length) {
-            assignIcon = <Icon icon="outdated" style={{ margin: "0 5px" }}></Icon>
+            assignIcon = <Icon icon="outdated" style={{ marginLeft: "5px" }}></Icon>
         }
         else if (props.solution.assignments[group.group_n] === null) {
-            assignIcon = <Icon icon="warning-sign" intent={"danger"} style={{ margin: "0 5px" }}></Icon>;
+            assignIcon = <Icon icon="warning-sign" intent={"danger"} style={{ marginLeft: "5px" }}></Icon>;
         }
         else {
-            assignIcon = <Icon icon="endorsed" intent={"success"} style={{ margin: "0 5px" }}></Icon>;
+            assignIcon = <Icon icon="endorsed" intent={"success"} style={{ marginLeft: "5px" }}></Icon>;
         }
 
         return (
@@ -52,8 +58,8 @@ export function SidePanel(props: SidePanelProps) {
                 {group.name} [{group.size}]
                 {assignIcon}
 
-                {group.accessibility && <MdAccessible className="bp3-icon" style={{ margin: "0 5px" }} />}
-                {group.slot && <Icon icon="lock" style={{ margin: "0 5px" }}></Icon>}
+                {group.accessibility && <MdAccessible className="bp3-icon" style={{ marginLeft: "5px" }} />}
+                {group.slot && <Icon icon="lock" style={{ marginLeft: "5px" }}></Icon>}
             </li>
         )
     }
@@ -64,7 +70,7 @@ export function SidePanel(props: SidePanelProps) {
                 <li className="side-panel-tab-li bp3-tab" role="tab" aria-selected="true">Réservations</li>
                 <li className="side-panel-tab-li bp3-tab" role="tab">Sièges</li>
             </ul>
-            <div className="side-panel-tab bp3-tab-panel" role="tabpanel">
+            <div className="side-panel-tab bp3-tab-panel" role="tabpanel" onClick={handleClickOutside}>
                 <ul className="side-list">
                     {props.group_queue.map(groupListItem)}
                 </ul>

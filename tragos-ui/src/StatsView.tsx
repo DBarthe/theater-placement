@@ -30,19 +30,19 @@ export function StatsView(props: StatsViewProps) {
 
     return (
         <div className="bp3-card main-panel-info-card">
-            <Label><b>Remplissage</b> {icon} </Label>
+            <h6 className="bp3-heading">Remplissage {icon}</h6>
             <ProgressBar className={skeleton && "bp3-skeleton" || ""} value={progressValue} animate={false} intent={"primary"} />
             <ul style={{ columns: 3, listStyle: "none" }}>
                 <li className={skeleton && "bp3-skeleton" || ""}>Places disponibles : {props.solution?.num_seats_empty}</li>
                 <li className={skeleton && "bp3-skeleton" || ""}>Occupées : {props.solution?.num_seats_occupied}</li>
                 <li className={skeleton && "bp3-skeleton" || ""}>Bloquées : {props.solution?.num_seats_blocked}</li>
             </ul>
-            <ul style={{ columns: 3, listStyle: "none" }}>
+            <ul style={{ columns: 2, listStyle: "none" }}>
                 <li className={skeleton && "bp3-skeleton" || ""}>Groupes acceptés : {props.solution?.num_groups_placed}</li>
                 <li className={skeleton && "bp3-skeleton" || ""}>Refusés : {props.solution?.num_groups_declined}</li>
             </ul>
 
-            <Label><b>Score COVID</b></Label>
+            <h6 className="bp3-heading">Score COVID</h6>
             <ProgressBar className={skeleton && "bp3-skeleton" || ""} value={props.solution?.covid_score || 0} animate={false} intent={"danger"} />
 
         </div>

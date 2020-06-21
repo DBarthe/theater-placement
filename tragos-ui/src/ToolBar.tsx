@@ -3,17 +3,12 @@ import { Button, Classes, Icon, Divider, ButtonGroup, Switch as BpSwitch, RadioG
 import { Link, useRouteMatch } from 'react-router-dom';
 import Axios from 'axios';
 import {Event} from './Models'
+import { removeTrailingSlash } from './utils';
 
 interface ToolbarProps {
     refreshEvent: () => any
     event: Event
-}
-
-function removeTrailingSlash(path : string) : string {
-    if (path.endsWith('/')) {
-        path = path.slice(0, path.length - 1)
-    }
-    return path
+    baseUrl: string
 }
 
 export function ToolBar(props: ToolbarProps) {
@@ -30,7 +25,7 @@ export function ToolBar(props: ToolbarProps) {
     return (
         <div className="main-panel-toolbar">
             <ButtonGroup>
-                <Link to={`${removeTrailingSlash(match.url)}/add_group`}>
+                <Link to={`${props.baseUrl}/add_group`}>
                     <Button icon="add" intent={"primary"}>Ajouter un groupe</Button>
                 </Link>
                 <Link to="import_groups">
