@@ -68,6 +68,10 @@
   background-color: #F5F8FA;
 }
 
+.side-list li.group-selected {
+  background-color:  #b4dcf5;
+}
+
 .main-panel {
   position: absolute;
   left: 250px;

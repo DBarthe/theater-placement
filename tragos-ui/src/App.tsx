@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useReducer, SetStateAction, Dispatch, useMemo } from 'react';
-import { BrowserRouter as Router, Switch, Route, useParams } from 'react-router-dom';
+import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
+import { BrowserRouter as Router, Switch, Route, useParams, useRouteMatch } from 'react-router-dom';
 
 import "normalize.css";
 import "@blueprintjs/core/lib/css/blueprint.css";
@@ -9,9 +9,12 @@ import './App.css';
 
 import { TopBar } from './TopBar';
 import { SidePanel } from './SidePanel';
-import { MainPanel } from './MainPanel';
+import { StatsView } from './StatsView';
 import { useFetch } from './FetchReducer';
-import { Event, Venue, Group } from './Models';
+import { Event, Venue, Group, Seat } from './Models';
+import { ToolBar } from './ToolBar';
+import { VenueMap } from './VenueMap';
+import { FormAddGroup } from './GroupForms';
 
 function App() {
 
@@ -36,6 +39,7 @@ interface EventPageProps {
 
 function EventPage(props: EventPageProps) {
   let { id } = useParams();
+  let match = useRouteMatch();
 
   const eventFetcher = useFetch<Event>(`/events/${id}`)
   const event = eventFetcher.state.data;
@@ -43,7 +47,12 @@ function EventPage(props: EventPageProps) {
   const venueFetcher = useFetch<Venue>(null);
   const venue = venueFetcher.state.data;
 
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
   const [hoveredGroup, setHoveredGroup] = useState<Group | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  // not sure we need this
+  const [, setGroupOfSelectedSeat] = useState<Group | null>(null);
 
   useEffect(() => {
     eventFetcher.setUrl(`/events/${id}`)
@@ -70,21 +79,48 @@ function EventPage(props: EventPageProps) {
     }
   }, [event, props])
 
+  useEffect(() => {
+    if (event && event.solution && selectedSeat) {
+      const seatSolution = event.solution.grid[selectedSeat.row_n][selectedSeat.seat_n]
+      if (seatSolution.group_n != null) {
+        setGroupOfSelectedSeat(event.requirements.group_queue[seatSolution.group_n])
+      }
+    }
+  }, [props, selectedSeat])
+
   return <>
     {/* <div style={{position: "absolute", top: "200px"}}>
     <p>{ data ? data.name : "" }</p>
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
-    <SidePanel group_queue={event?.requirements.group_queue || []}  setHoveredGroup={setHoveredGroup} />
+    <SidePanel group_queue={event?.requirements.group_queue || []}
+      setHoveredGroup={setHoveredGroup}
+      selectedGroup={selectedGroup}
+      setSelectedGroup={setSelectedGroup}
+    />
     {event && venue &&
-      <MainPanel
-        event={event}
-        venue={venue}
-        requirements={event.requirements}
-        solution={event.solution}
-        hoveredGroup={hoveredGroup}
-        refreshEvent={eventFetcher.refresh} />}
+      <div className="main-panel">
+        <ToolBar onClickAddGroup={() => null} />
+        <div className="main-panel-info">
+          <Switch>
+            <Route path={`${match.path}/add_group`}>
+              <FormAddGroup refreshEvent={eventFetcher.refresh} />
+            </Route>
+            <Route path={match.path}>
+              <></>
+            </Route>
+          </Switch>
+          <StatsView event={event} solution={event.solution} venue={venue} />
+        </div>
+        <div className="main-panel-map">
+          <VenueMap venue={venue}
+            requirements={event.requirements} solution={event.solution}
+            hoveredGroup={hoveredGroup} selectedGroup={selectedGroup}
+            selectedSeat={selectedSeat} setSelectedSeat={setSelectedSeat}
+          ></VenueMap>
+        </div>
+      </div>}
   </>
 }
 

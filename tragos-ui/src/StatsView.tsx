@@ -1,11 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
-import { VenueMap } from './VenueMap';
-import { ToolBar } from './ToolBar';
-import { Event, Venue, Solution, Requirements, Group } from './Models';
-import { useRouteMatch, Route, Switch as SwitchRoute } from 'react-router-dom';
-import { FormAddGroup } from './GroupForms';
+import React, { useMemo } from 'react';
+import { Event, Venue, Solution } from './Models';
 import { ProgressBar, Label, Icon } from '@blueprintjs/core';
-import { useFetch } from './FetchReducer';
 
 interface StatsViewProps {
     event: Event
@@ -13,7 +8,7 @@ interface StatsViewProps {
     solution: Solution | null
 }
 
-function StatsView(props: StatsViewProps) {
+export function StatsView(props: StatsViewProps) {
 
     const progressValue = props.solution && props.venue ?
         (props.venue.num_seats - props.solution.num_seats_empty) / props.venue.num_seats : 0
@@ -54,58 +49,4 @@ function StatsView(props: StatsViewProps) {
     )
 }
 
-interface PanelInfoProps {
-    event: Event
-    venue: Venue
-    solution: Solution | null
-    refreshEvent: () => any
-}
 
-
-function PanelInfo(props: PanelInfoProps) {
-
-    let match = useRouteMatch();
-
-    return (
-        <>
-            <SwitchRoute>
-                <Route path={`${match.path}/add_group`}>
-                    <FormAddGroup refreshEvent={props.refreshEvent} />
-                </Route>
-                <Route path={match.path}>
-                    <></>
-                </Route>
-            </SwitchRoute>
-            <StatsView event={props.event} solution={props.solution} venue={props.venue} />
-        </>
-    );
-}
-
-
-interface MainPanelProps {
-    event: Event
-    venue: Venue
-    requirements: Requirements
-    solution: Solution | null
-    hoveredGroup: Group | null
-    refreshEvent: () => any
-}
-export function MainPanel(props: MainPanelProps) {
-
-    return (
-        <div className="main-panel">
-            <ToolBar onClickAddGroup={() => null} />
-            <div className="main-panel-info">
-                <PanelInfo event={props.event} refreshEvent={props.refreshEvent} venue={props.venue} solution={props.solution} />
-            </div>
-            <div className="main-panel-map">
-                {props.venue &&
-                    <VenueMap venue={props.venue}
-                        requirements={props.requirements} solution={props.event.solution}
-                        hoveredGroup={props.hoveredGroup}    
-                    ></VenueMap>
-                }
-            </div>
-        </div>
-    );
-}

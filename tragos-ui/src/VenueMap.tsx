@@ -2,51 +2,31 @@ import React, { useEffect, useCallback, useLayoutEffect } from 'react';
 import Flatbush from 'flatbush';
 import { FullParentSizeCanvas } from './Canvas';
 import { Venue, Seat, Requirements, Solution, SeatStatus, Group } from './Models';
+import { useMemoizedCallback } from './MemoizedCallback';
 
 export interface VenueMapProps {
     venue: Venue
     requirements: Requirements
     solution: Solution | null
     hoveredGroup: Group | null
+    selectedSeat: Seat | null
+    selectedGroup: Group | null
+    setSelectedSeat: (seat: Seat | null) => any
 }
-
-const useMemoizedCallback = (callback : any, inputs: any[] = []) => {
-    // Instance var to hold the actual callback.
-    const callbackRef = React.useRef(callback);
-
-    // The memoized callback that won't change and calls the changed callbackRef.
-    const memoizedCallback = React.useCallback((...args) => {
-      return callbackRef.current(...args);
-    }, []);
-
-    // The callback that is constantly updated according to the inputs.
-    const updatedCallback = React.useCallback(callback, inputs);
-
-    // The effect updates the callbackRef depending on the inputs.
-    React.useEffect(() => {
-        callbackRef.current = updatedCallback;
-    }, inputs);
-
-    // Return the memoized callback.
-    return memoizedCallback;
-};
-
-
 
 export function VenueMap(props: VenueMapProps) {
 
-    const { venue, requirements, solution, hoveredGroup } = props;
+    const { venue, requirements, solution, hoveredGroup, selectedSeat, setSelectedSeat, selectedGroup } = props;
 
     const canvasRef = React.createRef<HTMLCanvasElement>();
     const drawerRef = React.useRef<VenueMapDrawer | null>(null);
     const lastCanvasDimension = React.useRef<{ h: number; w: number; } | null>(null);
-    const [selected, setSelected] = React.useState<Seat | null>(null);
 
     const [needRebuild, setNeedRebuild] = React.useState<boolean>(false);
     const [needRedraw, setNeedRedraw] = React.useState<boolean>(false);
 
 
-    const [dimension, setDimension] = React.useState<{w: number, h: number}>({w: 0, h: 0});
+    const [dimension, setDimension] = React.useState<{ w: number, h: number }>({ w: 0, h: 0 });
 
 
     function withDrawer<T extends any[] | []>(
@@ -59,12 +39,9 @@ export function VenueMap(props: VenueMapProps) {
                 || lastCanvasDimension.current?.w !== canvas.width) {
 
                 lastCanvasDimension.current = { h: canvas.height, w: canvas.width };
-                drawerRef.current = new VenueMapDrawer(props.venue, props.requirements, props.solution, canvas, selected, props.hoveredGroup);
+                drawerRef.current = new VenueMapDrawer(props.venue, props.requirements, props.solution, canvas);
                 setNeedRebuild(false)
             }
-            
-            drawerRef.current.setSelected(selected)
-            drawerRef.current.setHoveredGroup(hoveredGroup)
 
             return f(drawerRef.current, ...args);
         });
@@ -98,19 +75,19 @@ export function VenueMap(props: VenueMapProps) {
             const { x, y } = getCursorPosition(event);
             const seat = drawer.pixel2Seat(x, y);
             if (seat !== null) {
-                setSelected(seat);
+                setSelectedSeat(seat);
             }
             else {
-                setSelected(null);
-                
+                setSelectedSeat(null);
+
             }
         });
-    }, [drawerRef, canvasRef, needRebuild, selected, props]);
+    }, [drawerRef, canvasRef, needRebuild, props]);
 
     useEffect(() => {
         setNeedRebuild(true)
-        setSelected(null)
-    }, [venue, requirements, solution])
+        setSelectedSeat(null)
+    }, [venue, requirements, solution, setSelectedSeat])
 
 
     useEffect(() => {
@@ -119,11 +96,16 @@ export function VenueMap(props: VenueMapProps) {
 
     useLayoutEffect(() => {
         setNeedRedraw(true)
-    }, [selected, hoveredGroup]);
+    }, [selectedSeat, hoveredGroup, selectedGroup]);
 
     useLayoutEffect(() => {
         if (needRedraw || needRebuild) {
-            withDrawer(drawer => drawer.draw());
+            withDrawer(drawer => {
+                drawer.setSelectedSeat(selectedSeat)
+                drawer.setHoveredGroup(hoveredGroup)
+                drawer.setSelectedGroup(selectedGroup)
+                drawer.draw()
+            });
             setNeedRebuild(false)
             setNeedRedraw(false)
         }
@@ -157,16 +139,17 @@ class VenueMapDrawer {
     private boxesIndex: { [index: string]: BoundingBox };
     private spatialIndex: Flatbush;
 
+    private selectedSeat: Seat | null = null;
+    private hoveredGroup: Group | null = null;
+    private selectedGroup: Group | null = null;
+
 
     constructor(
         private venue: Venue,
         private requirements: Requirements,
         private solution: Solution | null,
-        private canvas: HTMLCanvasElement,
-        private selected: Seat | null,
-        private hoveredGroup: Group | null
+        private canvas: HTMLCanvasElement
     ) {
-
         console.log("recomputing drawer")
 
         const ctx = this.canvas.getContext('2d')
@@ -230,7 +213,7 @@ class VenueMapDrawer {
             const box = this.boxesIndex[[seat.row_n, seat.seat_n].toString()]
             let selected = false;
 
-            if (seat.row_n === this.selected?.row_n && seat.seat_n === this.selected?.seat_n) {
+            if (seat.row_n === this.selectedSeat?.row_n && seat.seat_n === this.selectedSeat?.seat_n) {
                 selected = true;
             }
 
@@ -284,6 +267,12 @@ class VenueMapDrawer {
                         this.ctx.strokeRect(x, y, w, h)
                     }
 
+                    else if (this.selectedGroup?.group_n === group.group_n) {
+                        this.ctx.strokeStyle = "yellow"
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(x, y, w, h)
+                    }
+
                 }
                 else if (seat_solution.status === SeatStatus.BLOCKED) {
                     // seat blocked
@@ -311,12 +300,16 @@ class VenueMapDrawer {
         return matches.length === 0 ? null : this.seats[matches[0]];
     }
 
-    setSelected(seat: Seat | null) {
-        this.selected = seat
+    setSelectedSeat(seat: Seat | null) {
+        this.selectedSeat = seat
     }
 
     setHoveredGroup(group: Group | null) {
         this.hoveredGroup = group
+    }
+
+    setSelectedGroup(group: Group | null) {
+        this.selectedGroup = group
     }
 
     draw() {
