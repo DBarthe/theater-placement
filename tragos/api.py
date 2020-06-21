@@ -8,6 +8,7 @@ from schema import Schema, And, Use, SchemaError
 
 from tragos import Config
 from tragos.database import DatabaseManager
+from tragos.models import Group
 from tragos.services import TragosException, MainService, NotFoundException
 
 app = Flask('tragos')
@@ -74,7 +75,7 @@ def get_venue(venue_id: str):
     return jsonify(venue)
 
 
-add_group_schema = Schema({
+group_schema = Schema({
     "name": And(str, len),
     "size": And(int, lambda size: size > 0),
     "accessibility": bool
@@ -84,8 +85,18 @@ add_group_schema = Schema({
 @app.route("/events/<event_id>/groups", methods=["POST"])
 def add_group(event_id: str):
     event_id = object_id_schema.validate(event_id)
-    content = add_group_schema.validate(request.json)
+    content = group_schema.validate(request.json)
     event = service.add_group(event_id, **content)
+    return jsonify(event)
+
+
+@app.route("/events/<event_id>/groups/<group_n>", methods=["PUT"])
+def update_group(event_id: str, group_n: str):
+    event_id = object_id_schema.validate(event_id)
+    group_n = Schema(And(str, Use(int))).validate(group_n)
+    content = group_schema.validate(request.json)
+    group = Group(group_n=group_n, **content)
+    event = service.update_group(event_id, group)
     return jsonify(event)
 
 

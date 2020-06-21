@@ -76,6 +76,21 @@ class MainService:
         self.events.update_one({"_id": event_id}, {"$push": {'requirements.group_queue': asdict(group)}})
         return event
 
+    def update_group(self, event_id: ObjectId, group: Group):
+        event = self.get_event(event_id)
+        if group.group_n is None:
+            raise TragosException("can't update a group with no group_n")
+        if not (0 <= group.group_n < len(event.requirements.group_queue)):
+            raise TragosException("can't update a group which does not exist")
+        event.requirements.group_queue[group.group_n] = group
+        self.events.update_one({"_id": event_id}, {
+            "$set": {
+                'requirements.group_queue.' + str(group.group_n): asdict(group),
+                'solution': None
+            }
+        })
+        return event
+
     def compute_solution(self, event_id: ObjectId) -> Solution:
         event = self.get_event(event_id)
         venue = self.get_venue(event.venue_id)
