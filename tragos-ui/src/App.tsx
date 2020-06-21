@@ -98,6 +98,7 @@ function EventPage(props: EventPageProps) {
       setHoveredGroup={setHoveredGroup}
       selectedGroup={selectedGroup}
       setSelectedGroup={setSelectedGroup}
+      solution={event?.solution || null}
     />
     {event && venue &&
       <div className="main-panel">
