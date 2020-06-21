@@ -14,7 +14,7 @@ import { useFetch } from './FetchReducer';
 import { Event, Venue, Group, Seat } from './Models';
 import { ToolBar } from './ToolBar';
 import { VenueMap } from './VenueMap';
-import { FormAddGroup } from './GroupForms';
+import { FormAddGroup, FormEditGroup } from './GroupForms';
 import { Label } from '@blueprintjs/core';
 import { GroupDetails } from './GroupDetails';
 
@@ -26,8 +26,7 @@ function App() {
     <Router>
       <TopBar title={title} />
       <Switch>
-
-        <Route path="/events/:id/groups/:group_n" render={({ match: { url, params: { id, group_n } } }) => (
+        <Route path="/events/:id/groups/:group_n" exact={false} render={({ match: { url, params: { id, group_n } } }) => (
           <EventPage id={id} group_n={parseInt(group_n)} setTitle={setTitle}></EventPage>
         )} />
         <Route path="/events/:id" render={({ match: { url, params: { id } } }) => (
@@ -105,28 +104,37 @@ function EventPage(props: EventPageProps) {
     }
   }, [props, selectedSeat])
 
+  const baseUrl = `/events/${id}`;
+
+  console.log(match)
+
   return <>
     {/* <div style={{position: "absolute", top: "200px"}}>
     <p>{ data ? data.name : "" }</p>
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
-    <SidePanel baseUrl={`/events/${id}`} group_queue={event?.requirements.group_queue || []}
+    <SidePanel baseUrl={baseUrl} group_queue={event?.requirements.group_queue || []}
       setHoveredGroup={setHoveredGroup}
       selectedGroup={selectedGroup}
       solution={event?.solution || null}
     />
     {event && venue &&
       <div className="main-panel">
-        <ToolBar event={event} baseUrl={`/events/${id}`} refreshEvent={eventFetcher.refresh} />
+        <ToolBar event={event} baseUrl={baseUrl} refreshEvent={eventFetcher.refresh} />
         <div className="main-panel-info">
           <Switch>
             <Route path={`${match.path}/add_group`}>
               <FormAddGroup refreshEvent={eventFetcher.refresh} />
             </Route>
+            <Route path={`${match.path}/edit`}>
+              {
+                selectedGroup && <FormEditGroup refreshEvent={eventFetcher.refresh} group={selectedGroup} baseUrl={baseUrl} event_id={id}></FormEditGroup>
+              }
+            </Route>
             <Route path={match.path}>
               {
-                selectedGroup && <GroupDetails group={selectedGroup}></GroupDetails>
+                selectedGroup && <GroupDetails group={selectedGroup} baseUrl={baseUrl}></GroupDetails>
               }
             </Route>
           </Switch>

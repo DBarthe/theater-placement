@@ -1,6 +1,6 @@
 import { useParams, Link, useHistory } from "react-router-dom";
 import { useState, useCallback, ChangeEvent, FunctionComponent } from "react";
-import { Divider, FormGroup, InputGroup, NumericInput, Button, Intent, Switch } from "@blueprintjs/core";
+import { Divider, FormGroup, InputGroup, NumericInput, Button, Intent, Switch, Alert } from "@blueprintjs/core";
 import { MdAccessible } from "react-icons/md";
 import React from "react";
 import Axios from "axios";
@@ -139,6 +139,21 @@ export const FormEditGroup: FunctionComponent<FormEditGroupProps> = ({ refreshEv
         history.push(`${baseUrl}/groups/${group.group_n}`)
     }, [event_id, group])
 
+    const [askingDelete, setAskingDelete] = useState<boolean>(false);
+    const [deleting, setDeleting] = useState<boolean>(false);
+
+    const handleAskDelete = useCallback(() => setAskingDelete(true), []);
+    const handleDeleteCancel = useCallback(() => setAskingDelete(false), []);
+    const handleDeleteConfirm = useCallback(async () => {
+        if (deleting) return;
+        setDeleting(true)
+        setAskingDelete(false)
+        await Axios.delete(`/events/${event_id}/groups/${group.group_n}`)
+        setDeleting(false)
+        refreshEvent()
+        history.push(`${baseUrl}`)
+    }, [event_id, group, deleting]);
+
     return (
         <BaseFormGroup
             title={"Modifier un groupe"}
@@ -146,8 +161,23 @@ export const FormEditGroup: FunctionComponent<FormEditGroupProps> = ({ refreshEv
             size={size} setSize={setSize}
             accessibility={accessibility} setAccessibility={setAccessibility}
         >
-            <Button className="main-panel-info-form-button" icon="cross" intent={Intent.DANGER} type="reset" onClick={handleReset}>Annuler</Button>
-            <Button className="main-panel-info-form-button" icon="floppy-disk" intent={Intent.SUCCESS} type="submit" onClick={handleSubmit} disabled={!isValid()}>Sauvegarder</Button>
+            <Button className="main-panel-info-form-button bp3-small" icon="cross" intent={Intent.NONE} type="reset" onClick={handleReset}>Annuler</Button>
+            <Button className="main-panel-info-form-button bp3-small" icon="floppy-disk" intent={Intent.SUCCESS} type="submit" onClick={handleSubmit} disabled={!isValid()}>Sauvegarder</Button>
+            <Button className="main-panel-info-form-button bp3-small" icon="trash" intent={Intent.DANGER} type="submit" onClick={handleAskDelete}>Supprimer</Button>
+            <Alert
+                className=""
+                cancelButtonText="Annuler"
+                confirmButtonText="Supprimer"
+                icon="trash"
+                intent={Intent.DANGER}
+                isOpen={askingDelete}
+                onCancel={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+            >
+                <p>
+                    Etes-vous sur de vouloir supprimer la réservation de <b>{group.name} [{group.size}]</b> ?
+                </p>
+            </Alert>
         </BaseFormGroup>
     )
 }

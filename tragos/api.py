@@ -100,6 +100,14 @@ def update_group(event_id: str, group_n: str):
     return jsonify(event)
 
 
+@app.route("/events/<event_id>/groups/<group_n>", methods=["DELETE"])
+def delete_group(event_id: str, group_n: str):
+    event_id = object_id_schema.validate(event_id)
+    group_n = Schema(And(str, Use(int))).validate(group_n)
+    event = service.delete_group(event_id, group_n)
+    return jsonify(event)
+
+
 @app.route("/events/<event_id>/compute", methods=["POST"])
 def compute_solution(event_id: str):
     event_id = object_id_schema.validate(event_id)
