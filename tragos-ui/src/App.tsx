@@ -11,7 +11,7 @@ import { TopBar } from './TopBar';
 import { SidePanel } from './SidePanel';
 import { MainPanel } from './MainPanel';
 import { useFetch } from './FetchReducer';
-import { Event, Venue } from './Models';
+import { Event, Venue, Group } from './Models';
 
 function App() {
 
@@ -42,6 +42,8 @@ function EventPage(props: EventPageProps) {
 
   const venueFetcher = useFetch<Venue>(null);
   const venue = venueFetcher.state.data;
+
+  const [hoveredGroup, setHoveredGroup] = useState<Group | null>(null);
 
   useEffect(() => {
     eventFetcher.setUrl(`/events/${id}`)
@@ -74,8 +76,15 @@ function EventPage(props: EventPageProps) {
     <p>{ isError ? "error" : "" }</p>
     <p>{ isLoading ? "loading" : "" }</p>
     </div> */}
-    <SidePanel group_queue={event?.requirements.group_queue || []} />
-    {event && venue && <MainPanel event={event} venue={venue} requirements={event.requirements} solution={event.solution} refreshEvent={eventFetcher.refresh} />}
+    <SidePanel group_queue={event?.requirements.group_queue || []}  setHoveredGroup={setHoveredGroup} />
+    {event && venue &&
+      <MainPanel
+        event={event}
+        venue={venue}
+        requirements={event.requirements}
+        solution={event.solution}
+        hoveredGroup={hoveredGroup}
+        refreshEvent={eventFetcher.refresh} />}
   </>
 }
 

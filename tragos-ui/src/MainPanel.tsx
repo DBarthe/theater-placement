@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { VenueMap } from './VenueMap';
 import { ToolBar } from './ToolBar';
-import { Event, Venue, Solution, Requirements } from './Models';
+import { Event, Venue, Solution, Requirements, Group } from './Models';
 import { useRouteMatch, Route, Switch as SwitchRoute } from 'react-router-dom';
 import { FormAddGroup } from './GroupForms';
 import { ProgressBar, Label, Icon } from '@blueprintjs/core';
@@ -76,7 +76,7 @@ function PanelInfo(props: PanelInfoProps) {
                     <></>
                 </Route>
             </SwitchRoute>
-            <StatsView event={props.event} solution={props.solution} venue={props.venue}/>
+            <StatsView event={props.event} solution={props.solution} venue={props.venue} />
         </>
     );
 }
@@ -86,7 +86,8 @@ interface MainPanelProps {
     event: Event
     venue: Venue
     requirements: Requirements
-    solution: Solution|null
+    solution: Solution | null
+    hoveredGroup: Group | null
     refreshEvent: () => any
 }
 export function MainPanel(props: MainPanelProps) {
@@ -95,11 +96,14 @@ export function MainPanel(props: MainPanelProps) {
         <div className="main-panel">
             <ToolBar onClickAddGroup={() => null} />
             <div className="main-panel-info">
-                <PanelInfo event={props.event} refreshEvent={props.refreshEvent} venue={props.venue} solution={props.solution}/>
+                <PanelInfo event={props.event} refreshEvent={props.refreshEvent} venue={props.venue} solution={props.solution} />
             </div>
             <div className="main-panel-map">
                 {props.venue &&
-                    <VenueMap venue={props.venue} requirements={props.requirements} solution={props.event.solution}></VenueMap>
+                    <VenueMap venue={props.venue}
+                        requirements={props.requirements} solution={props.event.solution}
+                        hoveredGroup={props.hoveredGroup}    
+                    ></VenueMap>
                 }
             </div>
         </div>

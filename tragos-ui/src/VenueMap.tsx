@@ -1,31 +1,39 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import Flatbush from 'flatbush';
 import { FullParentSizeCanvas } from './Canvas';
-import { Venue, Seat, Requirements, Solution, SeatStatus } from './Models';
-import { assert } from 'console';
+import { Venue, Seat, Requirements, Solution, SeatStatus, Group } from './Models';
 
 export interface VenueMapProps {
     venue: Venue
     requirements: Requirements
     solution: Solution | null
+    hoveredGroup: Group | null
 }
 
 export function VenueMap(props: VenueMapProps) {
 
-    const [selected, setSelected] = React.useState<Seat | null>(null);
     const canvasRef = React.createRef<HTMLCanvasElement>();
-    const [drawer, setDrawer] = React.useState<VenueMapDrawer|null>(null);
-    const [resized, setResized] = React.useState<boolean>(false);
+    const drawerRef = React.useRef<VenueMapDrawer | null>(null);
+    const lastCanvasDimension = React.useRef<{ h: number; w: number; } | null>(null);
+    const [selected, setSelected] = React.useState<Seat | null>(null);
 
-    function rebuildDrawer() {
-        if (canvasRef.current) {
-           setDrawer(new VenueMapDrawer(props.venue, props.requirements, props.solution, canvasRef.current, selected));
-        }
+
+    function withDrawer<T extends any[] | []>(
+        f: (arg0: VenueMapDrawer, ...args: T) => void, ...args: T) {
+
+        return withCanvas(canvas => {
+
+            if (drawerRef.current === null
+                || lastCanvasDimension.current?.h !== canvas.height
+                || lastCanvasDimension.current?.w !== canvas.width) {
+
+                lastCanvasDimension.current = { h: canvas.height, w: canvas.width };
+                drawerRef.current = new VenueMapDrawer(props.venue, props.requirements, props.solution, canvas, selected, props.hoveredGroup);
+            }
+
+            return f(drawerRef.current, ...args);
+        });
     }
-
-    useEffect(() => {
-        rebuildDrawer()
-    }, [props.venue, props.requirements, props.solution]);
 
     // convert windows coordinates into canvas coordinates
     function getCursorPosition(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): { x: number; y: number; } {
@@ -39,25 +47,23 @@ export function VenueMap(props: VenueMapProps) {
         return { x, y };
     }
 
-    function handleDraw() {
-        // withDrawer(drawer => drawer.draw());
-        if (drawer === null || resized) {
-            rebuildDrawer()
-            setResized(false)
-        }
-
-        else {
-            drawer.draw();
-        }
+    function withCanvas<T extends any[] | []>(
+        f: (arg0: HTMLCanvasElement, ...args: T) => void, ...args: T) {
+        const canvas = canvasRef.current;
+        if (canvas === null)
+            return;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null)
+            return;
+        f(canvas, ...args);
     }
 
-    function handleResize() {
-        setResized(true);
+    function handleDraw() {
+        withDrawer(drawer => drawer.draw());
     }
 
     function handleClick(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
-        // withDrawer(drawer => {
-            if (drawer === null) return ;
+        withDrawer(drawer => {
             const { x, y } = getCursorPosition(event);
             const seat = drawer.pixel2Seat(x, y);
             if (seat !== null) {
@@ -69,12 +75,12 @@ export function VenueMap(props: VenueMapProps) {
                 drawer.setSelected(null);
             }
 
-            handleDraw()
-        // });
+            drawer.draw();
+        });
     }
 
     return (
-        <FullParentSizeCanvas ref={canvasRef} onClick={handleClick} draw={handleDraw} onResize={handleResize} />
+        <FullParentSizeCanvas ref={canvasRef} onClick={handleClick} draw={handleDraw} />
     );
 }
 
@@ -109,7 +115,8 @@ class VenueMapDrawer {
         private requirements: Requirements,
         private solution: Solution | null,
         private canvas: HTMLCanvasElement,
-        private selected: Seat | null = null
+        private selected: Seat | null,
+        private hoveredGroup: Group | null
     ) {
 
         console.log("recomputing drawer")

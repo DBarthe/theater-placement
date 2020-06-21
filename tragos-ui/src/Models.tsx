@@ -29,6 +29,7 @@ export interface Venue {
 
 export interface Group {
     name: string
+    group_n: number
     size: number
     accessibility: boolean
     slot: Slot|null

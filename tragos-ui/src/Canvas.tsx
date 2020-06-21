@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 interface CanvasProps {
     width: number
@@ -10,8 +10,10 @@ interface CanvasProps {
 export const Canvas = React.forwardRef<HTMLCanvasElement, CanvasProps>((props, ref) => {
 
     React.useEffect(() => {
+        console.log('canvas reload !!!')
         props.draw()
     })
+
 
     return (
         <canvas ref={ref} width={props.width} height={props.height} onClick={props.onClick}></canvas>
@@ -21,7 +23,6 @@ export const Canvas = React.forwardRef<HTMLCanvasElement, CanvasProps>((props, r
 interface FullParentSizeCanvasProps {
     onClick: ((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => void) | undefined
     draw: () => void
-    onResize: () => void
 }
 
 export const FullParentSizeCanvas = React.forwardRef<HTMLCanvasElement, FullParentSizeCanvasProps>((props, ref) => {
@@ -40,7 +41,6 @@ export const FullParentSizeCanvas = React.forwardRef<HTMLCanvasElement, FullPare
 
         console.log("resizing canvas", newWrapperSize)
         setWrapperSize(newWrapperSize)
-        props.onResize()
     }
 
     function createDebouncedResizeHandle() {
