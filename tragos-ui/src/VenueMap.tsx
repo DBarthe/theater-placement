@@ -157,8 +157,8 @@ class VenueMapDrawer {
         this.ctx = ctx;
 
         this.ratioTranslation = Math.min(canvas.width / venue.width, canvas.height / venue.height)
-        this.offsetX = canvas.width - venue.width * this.ratioTranslation
-        this.offsetY = canvas.height - venue.height * this.ratioTranslation
+        this.offsetX = (canvas.width - venue.width * this.ratioTranslation) / 2
+        this.offsetY = (canvas.height - venue.height * this.ratioTranslation) / 2
 
         this.seats = venue.rows.flatMap(row => row.seats);
 
@@ -197,7 +197,7 @@ class VenueMapDrawer {
 
     private position2Pixel(x: number, y: number): { x: number, y: number } {
         return {
-            x: this.offsetY + x * this.ratioTranslation,
+            x: this.offsetX + x * this.ratioTranslation,
             y: this.offsetY + y * this.ratioTranslation
         }
     }

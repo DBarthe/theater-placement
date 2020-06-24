@@ -1,5 +1,7 @@
 import random
 from math import sqrt, atan
+from typing import List, Tuple
+from faker import Faker
 
 from bson import ObjectId
 
@@ -35,12 +37,42 @@ def compute_all_seats_value(venue: Venue):
         venue.rows[row_n].seats[seat_n].value = value
 
 
+def create_venue_grid(num_rows: int, row_len: int, accessible_seats: List[Tuple[int, int]]) -> Venue:
+    rows = []
+    for row_n in range(num_rows):
+        seats = []
+        row_name = chr(ord('A') + row_n)
+        for seat_n in range(row_len):
+            seats.append(Seat(
+                row_name=row_name,
+                col_name=str(seat_n+1),
+                row_n=row_n,
+                seat_n=seat_n,
+                y=row_n+1,
+                x=seat_n+1,
+                accessible=(row_n, seat_n) in accessible_seats
+            ))
+        rows.append(Row(
+            name=row_name,
+            row_n=row_n,
+            seats=seats
+        ))
+    venue = Venue(num_seats=num_rows*row_len, rows=rows,
+                  stage_center_x=1+(row_len-1)/2, stage_center_y=0,
+                  default_seat_height=0.7, default_seat_width=0.7,
+                  width=row_len + 2, height=num_rows + 2
+                  )
+    compute_all_seats_value(venue)
+    return venue
+
+
 def create_venue() -> Venue:
     rows = [
         Row(name='A', row_n=0, seats=[
             Seat(row_name='A', col_name='1', row_n=0, seat_n=0, x=1, y=1, accessible=False),
             Seat(row_name='A', col_name='2', row_n=0, seat_n=1, x=2, y=1, accessible=False),
             Seat(row_name='A', col_name='3', row_n=0, seat_n=2, x=3, y=1, accessible=False),
+            Seat(row_name='A', col_name='4', row_n=0, seat_n=3, x=4, y=1, accessible=False),
             Seat(row_name='A', col_name='4', row_n=0, seat_n=3, x=4, y=1, accessible=False)
         ]),
         Row(name='B', row_n=1, seats=[
@@ -64,13 +96,15 @@ def create_venue() -> Venue:
     return venue
 
 
-def create_requirements(num_groups: int, min_distance: float) -> Requirements:
-    requirements = Requirements(min_distance=min_distance)
+def create_requirements(num_groups: int, min_distance: float, accessibility_rate: float = 0, max_group_size: int = 6) -> Requirements:
+
+    faker = Faker('fr_FR')
+    requirements = Requirements(min_distance=min_distance, max_group_size=max_group_size)
     requirements.group_queue = [
         Group(group_n=i,
-              name="Groupe {}".format(i),
+              name=faker.name(),
               size=random.randint(1, requirements.max_group_size),
-              accessibility=False)
+              accessibility=random.random() < accessibility_rate)
         for i in range(num_groups)]
 
     return requirements

@@ -1,14 +1,14 @@
 from dataclasses import asdict
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import dacite
 from bson import ObjectId
 
 from tragos import engine
 from tragos.database import DatabaseManager
-from tragos.fake import create_venue, create_requirements
+from tragos.fake import create_venue, create_requirements, create_venue_grid
 from tragos.models import Event, Requirements, History, Group, Venue, Solution
 
 
@@ -27,11 +27,15 @@ class MainService:
         self.events = database_manager.events()
         self.venues = database_manager.venues()
 
-    def load_fake_data(self) -> Event:
-        venue = create_venue()
-        requirements = create_requirements(num_groups=5, min_distance=1)
-        self.venues.update_one({"_id": venue.id}, {"$set": asdict(venue)}, upsert=True)
-        event = Event(name="Test 1", show_date=datetime.now(), venue_id=venue.id,
+    def create_fake_event(self, name: str, num_rows: int, row_len: int,
+                          accessible_seats: List[Tuple[int, int]],
+                          num_groups: int, min_distance: float, accessibility_rate: float
+                          ) -> Event:
+        venue = create_venue_grid(num_rows, row_len, accessible_seats)
+        requirements = create_requirements(num_groups=num_groups, min_distance=min_distance,
+                                           accessibility_rate=accessibility_rate)
+        venue_result = self.venues.insert_one(self.trim_id(asdict(venue)))
+        event = Event(name=name, show_date=datetime.now(), venue_id=venue_result.inserted_id,
                       requirements=requirements, solution=None, history=History())
         result = self.events.insert_one(self.trim_id(asdict(event)))
         event._id = result.inserted_id
@@ -105,7 +109,7 @@ class MainService:
             update_group_n(group, group.group_n if group.group_n < group_n else group.group_n - 1)
             for group in event.requirements.group_queue
             if group.group_n != group_n
-         ]
+        ]
         event.requirements.group_queue = group_queue
         event.solution = None
         self.events.update_one({"_id": event_id}, {

@@ -6,7 +6,7 @@ from itertools import islice, takewhile
 from math import sqrt
 from typing import NamedTuple, List, Dict, Generator, Tuple, cast, Optional
 
-from tragos.fake import create_venue, create_requirements
+from tragos.fake import create_requirements, create_venue_grid
 from tragos.models import Group, Requirements, Solution, SeatSolution, SeatStatus, Slot
 from tragos.models import Venue
 
@@ -122,7 +122,7 @@ class BitSetIndex:
         self._value &= ~(1 << index)
 
     def inverse(self):
-        self._value = (~self._value) & ((1 << self._value.bit_length()) - 1)
+        self._value = (~self._value) & ((1 << self._size) - 1)
 
     def iterate(self) -> Generator[int, None, None]:
         mask = 1
@@ -320,7 +320,9 @@ class IndexedImplementation(Implementation):
             if not slots_index.any():
                 slots_index = slots_index_intermediate
 
-        for slot_n in islice(slots_index.iterate(), self._max_expand):
+        #for slot_n in islice(slots_index.iterate(), self._max_expand):
+        #    expanded_states.append(self.__place_group(state, slot_n))
+        for slot_n in slots_index.iterate():
             expanded_states.append(self.__place_group(state, slot_n))
         return expanded_states
 
@@ -340,7 +342,7 @@ class IndexedImplementation(Implementation):
                 if BitSetIndex.intersect([index, state.occupied_index]).any():
                     score += 2 * seat.value
                 elif BitSetIndex.intersect([index, state.empty_index]).any():
-                    score += 1 * seat.value
+                    score += 1
         return score
 
     def assign(self, group_queue: List[Group], state: IndexedState) -> Tuple[List[Slot], Dict[int, int]]:
@@ -511,7 +513,7 @@ class Manager:
 def start(venue: Venue, requirements: Requirements, max_expand=10, max_loop=50) -> Solution:
     impl = IndexedImplementation(
         venue=venue,
-        requirements=Requirements(),
+        requirements=requirements,
         max_expand=max_expand,
     )
 
@@ -564,13 +566,23 @@ def main(argv=None):
     parser.add_argument('--max-expand', dest='max_expand', type=int, default=10, help='the max expansion factor')
     parser.add_argument('--num-groups', dest='num_groups', type=int, default=10,
                         help='the number of groups to generate')
+    parser.add_argument('--max-group-size', dest='max_group_size', type=int, default=6,
+                        help='the maximum size of a group accepted')
     parser.add_argument('--max-loop', dest='max_loop', type=int, default=50,
                         help='the max number of iteration when searching')
+    parser.add_argument('--accessibility-rate', dest='accessibility_rate', type=float, default=0,
+                        help='the rate of groups that need accessibility')
+    parser.add_argument('--num-rows', dest='num_rows', type=int, default=10,
+                        help='the number of rows')
+    parser.add_argument('--row-len', dest='row_len', type=int, default=10,
+                        help='the size of a row')
 
     args = parser.parse_args(argv)
 
-    requirements = create_requirements(num_groups=args.num_groups, min_distance=args.min_distance)
-    solution = start(venue=create_venue(),
+    requirements = create_requirements(
+        num_groups=args.num_groups, min_distance=args.min_distance, accessibility_rate=args.accessibility_rate,
+        max_group_size=args.max_group_size)
+    solution = start(venue=create_venue_grid(args.num_rows, args.row_len, []),
                      requirements=requirements,
                      max_expand=args.max_expand, max_loop=args.max_loop)
 
@@ -578,4 +590,8 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    main()
+    main(["--num-groups", "1",
+          "--row-len", "3",
+          "--num-rows", "3",
+          "--min-distance", "1.01",
+          "--max-group-size", "1"])

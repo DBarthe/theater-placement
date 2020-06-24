@@ -32,9 +32,21 @@ def index():
     return "hello"
 
 
-@app.route('/load_fake_data', methods=['POST'])
-def load_fake_data():
-    event = service.load_fake_data()
+create_fake_event_schema = Schema({
+    "name": And(str, len),
+    "num_rows": And(int, lambda x: x > 0),
+    "row_len": And(int, lambda x: x > 0),
+    "accessible_seats": [And([And(int, lambda x: x >= 0)], lambda x: len(x) == 2, Use(tuple))],
+    "num_groups": And(int, lambda x: x >= 0),
+    "min_distance": And(float, lambda x: x >= 0),
+    "accessibility_rate": And(float, lambda x: x >= 0),
+})
+
+
+@app.route('/events/fake', methods=['POST'])
+def create_fake_event():
+    content = create_fake_event_schema.validate(request.json)
+    event = service.create_fake_event(**content)
     return jsonify(event)
 
 
