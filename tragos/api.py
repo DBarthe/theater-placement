@@ -127,6 +127,20 @@ def compute_solution(event_id: str):
     return jsonify(solution)
 
 
+@app.route("/events/<event_id>/accessibility/unlock", methods=["POST"])
+def unlock_accessible_seats(event_id: str):
+    event_id = object_id_schema.validate(event_id)
+    event = service.unlock_accessible_seats(event_id)
+    return jsonify(event)
+
+
+@app.route("/events/<event_id>/accessibility/lock", methods=["POST"])
+def lock_accessible_seats(event_id: str):
+    event_id = object_id_schema.validate(event_id)
+    event = service.lock_accessible_seats(event_id)
+    return jsonify(event)
+
+
 @app.errorhandler(NotFoundException)
 def handle_not_found_error(e: NotFoundException):
     traceback.print_exc()

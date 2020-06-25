@@ -95,3 +95,9 @@ export interface Event {
     requirements: Requirements
     solution: Solution
 }
+
+export interface ApiError {
+    code: number
+    type: string
+    message: string
+}

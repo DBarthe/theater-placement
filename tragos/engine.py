@@ -178,6 +178,7 @@ class MetaState:
         self._min_distance = requirements.min_distance
 
         self.slots = self.__compute_slots()
+        self.slot_index = self.__compute_slot_index()
         self.slots_by_size = self.__compute_slots_by_size()
         self.slots_by_seat = self.__compute_slots_by_seat()
 
@@ -196,6 +197,12 @@ class MetaState:
                     if seat.seat_n + group_size <= len(row.seats):
                         slots.append(IndexedSlot(row_n=seat.row_n, seat_n=seat.seat_n, size=group_size))
         return slots
+
+    def __compute_slot_index(self) -> Dict[IndexedSlot, BitSetIndex]:
+        slots_index = {}
+        for slot_n, slot in enumerate(self.slots):
+            slots_index[slot] = BitSetIndex(size=len(self.slots), value=(1 << slot_n))
+        return slots_index
 
     def __compute_slots_by_size(self) -> Dict[int, BitSetIndex]:
         slots_by_size = {}
@@ -261,14 +268,17 @@ class MetaState:
                 if seat.accessible:
                     accessible_indices.append(self.slots_by_seat[IndexedSeat(row_n=seat.row_n, seat_n=seat.seat_n)])
 
-        if len(accessible_indices) == 0:
-            accessible_index = BitSetIndex(size=len(self.slots), value=0)
-            non_accessible_index = BitSetIndex(size=len(self.slots), value=0)
-            non_accessible_index.inverse()
-        else:
-            accessible_index = BitSetIndex.union(accessible_indices)
+        accessible_index = BitSetIndex.from_list([
+            all((self._venue.rows[slot.row_n].seats[seat_n].accessible for seat_n in
+                 range(slot.seat_n, slot.seat_n + slot.size)))
+            for slot in self.slots
+        ])
+
+        if accessible_index.any():
             non_accessible_index = BitSetIndex.intersect(
                 [self.slots_by_safety[slot_n] for slot_n in accessible_index.iterate()])
+        else:
+            non_accessible_index = BitSetIndex.inverted(accessible_index)
 
         return {True: accessible_index, False: non_accessible_index}
 
@@ -309,20 +319,24 @@ class IndexedImplementation(Implementation):
             self._meta_state.slots_by_size[group.size],
         ])
 
-        if group.accessibility:
+        if group.slot is not None:
+            slots_index = BitSetIndex.intersect([
+                slots_index_intermediate,
+                self._meta_state.slot_index[IndexedSlot(
+                    row_n=group.slot.row_n, seat_n=group.slot.seat_n, size=group.slot.size)],
+            ])
+        elif group.accessibility:
             slots_index = BitSetIndex.intersect([
                 slots_index_intermediate,
                 self._meta_state.slots_by_accessibility[True]
             ])
-        else:
+        elif self._requirements.lock_accessibility:
             slots_index = BitSetIndex.intersect(
                 [slots_index_intermediate, self._meta_state.slots_by_accessibility[False]])
-            if not slots_index.any():
-                slots_index = slots_index_intermediate
+        else:
+            slots_index = slots_index_intermediate
 
-        #for slot_n in islice(slots_index.iterate(), self._max_expand):
-        #    expanded_states.append(self.__place_group(state, slot_n))
-        for slot_n in slots_index.iterate():
+        for slot_n in islice(slots_index.iterate(), self._max_expand):
             expanded_states.append(self.__place_group(state, slot_n))
         return expanded_states
 
@@ -346,12 +360,22 @@ class IndexedImplementation(Implementation):
         return score
 
     def assign(self, group_queue: List[Group], state: IndexedState) -> Tuple[List[Slot], Dict[int, int]]:
+
         slots = []
         assignments = {}
+
+        # TODO: assign PMR to accessible slots...
+        # TODO: test locked seats...
+
         group_slots = self.__collect_group_slots(state)
         for group in group_queue:
-            assert len(group_slots[group.size]) > 0
-            row_n, seat_n = group_slots[group.size].pop(0)
+            if group.slot is not None:
+                row_n, seat_n = group.slot.row_n, group.slot.seat_n
+                index = group_slots[group.size].index((row_n, seat_n))
+                del group_slots[index]
+            else:
+                assert len(group_slots[group.size]) > 0
+                row_n, seat_n = group_slots[group.size].pop(0)
             slot = Slot(
                 row_n=row_n,
                 seat_n=seat_n,
@@ -365,12 +389,16 @@ class IndexedImplementation(Implementation):
     def __collect_group_slots(self, state: IndexedState) -> Dict[int, List[Tuple[int, int]]]:
         result = {group_size: [] for group_size in range(1, self._requirements.max_group_size + 1)}
 
+        # aggregate slots by size
         for slot_n in state.occupied_index.iterate():
             slot = self._meta_state.slots[slot_n]
             result[slot.size].append((slot.row_n, slot.seat_n))
 
+        # sort slots by value
         for group_size, slots in result.items():
-            slots.sort(key=lambda seat: seat[0])
+            slots.sort(reverse=True, key=lambda seat: sum(
+                self._venue.rows[seat[0]].seats[seat[1] + i].value
+                for i in range(group_size)))
 
         return result
 
@@ -410,7 +438,7 @@ class Manager:
     def run(self) -> Solution:
         # loop
         print("Starting placement loop")
-        for group in self._requirements.group_queue:
+        for group in self.__reorder_group_queue():
             print("Trying to place group {}".format(group))
             self.__save()
             self._group_queue.append(group)
@@ -427,6 +455,20 @@ class Manager:
                 print("{} groups placed".format(len(self._group_queue)))
 
         return self.__build_solution()
+
+    def __reorder_group_queue(self):
+        """
+        Put first groups that have a reserved slot
+        """
+        reordered_queue = []
+        tail = []
+        for group in self._requirements.group_queue:
+            if group.slot is not None:
+                reordered_queue.append(group)
+            else:
+                tail.append(group)
+        reordered_queue.extend(tail)
+        return reordered_queue
 
     def __print_state(self, state: State):
         grid = self._impl.as_grid(state)
@@ -510,7 +552,7 @@ class Manager:
         self._fringe, self._closed_set = self._backup
 
 
-def start(venue: Venue, requirements: Requirements, max_expand=10, max_loop=50) -> Solution:
+def start(venue: Venue, requirements: Requirements, max_expand=100, max_loop=50) -> Solution:
     impl = IndexedImplementation(
         venue=venue,
         requirements=requirements,
@@ -563,7 +605,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='COVID-friendly theater placement')
     parser.add_argument('--min-distance', dest='min_distance', type=float, default=1.5,
                         help='the min distance to keep between people')
-    parser.add_argument('--max-expand', dest='max_expand', type=int, default=10, help='the max expansion factor')
+    parser.add_argument('--max-expand', dest='max_expand', type=int, default=100, help='the max expansion factor')
     parser.add_argument('--num-groups', dest='num_groups', type=int, default=10,
                         help='the number of groups to generate')
     parser.add_argument('--max-group-size', dest='max_group_size', type=int, default=6,
