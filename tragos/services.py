@@ -162,7 +162,7 @@ class MainService:
         """
         event = self.get_event(event_id)
         venue = self.get_venue(event.venue_id)
-        solution = engine.start(venue=venue, requirements=event.requirements, max_expand=100)
+        solution = engine.start(venue=venue, requirements=event.requirements, max_expand=100, max_loop=500)
         self.events.update_one({"_id": event_id}, {"$set": {'solution': asdict(solution)}})
         return solution
 
@@ -170,7 +170,7 @@ class MainService:
         """
         Permit everyone to use accessible seats.
         A solution must be computed before calling this method.
-        It will lock every 'accessible' group to their temporary assigned slot.
+        It will lock every 'accessible' group so that they cannot be squeezed
         No need to recompute solution after this, but a lock will appears on accessible seats previously occupied.
         If the user recomputes, remaining accessible seats will be available to other groups.
         """
@@ -185,7 +185,7 @@ class MainService:
             if group.accessibility and group.slot is None:
                 slot_n = event.solution.assignments[group.group_n]
                 if slot_n is not None:
-                    group.slot = event.solution.slots[slot_n]
+                    group.accessible_locked = True
 
         self.events.update_one({"_id": event_id}, {"$set": {
             'requirements': asdict(event.requirements),
@@ -202,9 +202,12 @@ class MainService:
 
         event = self.get_event(event_id)
         event.requirements.lock_accessibility = True
+        for group in event.requirements.group_queue:
+            if group.accessibility:
+                group.accessible_locked = False
         event.solution = None
         self.events.update_one({"_id": event_id}, {"$set": {
-            'requirements.lock_accessibility': True,
+            'requirements': asdict(event.requirements),
             'solution': None
         }})
         return event

@@ -235,6 +235,15 @@ class VenueMapDrawer {
             this.ctx.fillStyle = "white";
             this.ctx.fillText(seat.row_name + seat.col_name, x + 2, y + 2);
 
+            // seat value
+            this.ctx.textAlign = "end";
+            this.ctx.textBaseline = 'top';
+            this.ctx.font = `${w / 4}px Arial`;
+            this.ctx.fillStyle = "white";
+            this.ctx.fillText((Math.round(seat.value * 100) / 100).toString(), Math.round(x + w), y + 2);
+
+
+
             if (this.solution) {
 
                 const seat_solution = this.solution.grid[seat.row_n][seat.seat_n]

@@ -58,7 +58,7 @@ export function SidePanel(props: SidePanelProps) {
                 {group.name} [{group.size}]
                 {assignIcon}
 
-                {group.accessibility && <MdAccessible className="bp3-icon" style={{ marginLeft: "5px" }} />}
+                {group.accessibility && <MdAccessible className="bp3-icon" style={{ marginLeft: "5px", color: (group.accessible_locked ? "green" : "black") }} />}
                 {group.slot && <Icon icon="lock" style={{ marginLeft: "5px" }}></Icon>}
             </li>
         )

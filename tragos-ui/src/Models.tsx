@@ -32,6 +32,7 @@ export interface Group {
     group_n: number
     size: number
     accessibility: boolean
+    accessible_locked: boolean
     slot: Slot|null
 }
 

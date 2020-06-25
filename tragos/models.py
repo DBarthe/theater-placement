@@ -41,6 +41,7 @@ class Group:
     name: str
     size: int
     accessibility: bool = False
+    accessible_locked: bool = False
     slot: Optional[Slot] = None
 
     def __eq__(self, other):

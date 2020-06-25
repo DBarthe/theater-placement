@@ -364,15 +364,20 @@ class IndexedImplementation(Implementation):
         slots = []
         assignments = {}
 
-        # TODO: assign PMR to accessible slots...
-        # TODO: test locked seats...
-
         group_slots = self.__collect_group_slots(state)
         for group in group_queue:
             if group.slot is not None:
                 row_n, seat_n = group.slot.row_n, group.slot.seat_n
                 index = group_slots[group.size].index((row_n, seat_n))
-                del group_slots[index]
+                del group_slots[group.size][index]
+            elif group.accessibility:
+                # deadly one-liner !!! :o
+                index = next(i for i, (row_n, seat_n) in enumerate(group_slots[group.size])
+                             if BitSetIndex.intersect([self._meta_state.slot_index[
+                                                           IndexedSlot(row_n=row_n, seat_n=seat_n, size=group.size)],
+                                                       self._meta_state.slots_by_accessibility[True]]).any())
+                row_n, seat_n = group_slots[group.size][index]
+                del group_slots[group.size][index]
             else:
                 assert len(group_slots[group.size]) > 0
                 row_n, seat_n = group_slots[group.size].pop(0)
@@ -438,7 +443,7 @@ class Manager:
     def run(self) -> Solution:
         # loop
         print("Starting placement loop")
-        for group in self.__reorder_group_queue():
+        for group in self.__reorder_group_queue(self._requirements.group_queue, self._requirements.lock_accessibility):
             print("Trying to place group {}".format(group))
             self.__save()
             self._group_queue.append(group)
@@ -456,19 +461,26 @@ class Manager:
 
         return self.__build_solution()
 
-    def __reorder_group_queue(self):
+    @staticmethod
+    def __reorder_group_queue(group_queue: List[Group], lock_accessibility: bool) -> List[Group]:
         """
-        Put first groups that have a reserved slot
+        Put first groups that have a reserved slot, then accessibility (if locked), then others
         """
-        reordered_queue = []
-        tail = []
-        for group in self._requirements.group_queue:
+        locked_queue = []
+        accessible_queue = []
+        normal_queue = []
+        for group in group_queue:
             if group.slot is not None:
-                reordered_queue.append(group)
+                locked_queue.append(group)
+            elif group.accessibility and (lock_accessibility or group.accessible_locked):
+                accessible_queue.append(group)
             else:
-                tail.append(group)
-        reordered_queue.extend(tail)
-        return reordered_queue
+                normal_queue.append(group)
+
+        final_queue = locked_queue
+        final_queue.extend(accessible_queue)
+        final_queue.extend(normal_queue)
+        return final_queue
 
     def __print_state(self, state: State):
         grid = self._impl.as_grid(state)
@@ -509,7 +521,11 @@ class Manager:
 
     def __build_solution(self) -> Solution:
         final_state, _ = self._fringe.find(cursor=len(self._group_queue))
-        slots, assignments_dict = self._impl.assign(self._group_queue, final_state)
+        slots, assignments_dict = self._impl.assign(
+            # it's a bit tricky why we need to reorder group_queue here...
+            # in case lock_accessibility is false and we appended last minutes PMR that has been successfully placed...
+            self.__reorder_group_queue(self._group_queue, lock_accessibility=True),
+            final_state)
         assignments_dict = cast(Dict[int, Optional[int]], assignments_dict)
         grid = self._impl.as_grid(final_state)
 
