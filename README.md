@@ -1,4 +1,8 @@
-# Tragos placement
+# Theater placement
+
+Ceci était un projet pour aider un festival de théatre à opérer durant la période covid (hors confinement), en optimisant le placement des spectateurs de facon à minimiser les risques de transmission du virus tout en permettant aux groupes de s'installer côté à côte.
+
+Il prenait en compte différents critères comme le placement des personnes à mobilité réduite et l'attribution des meilleurses places en fonction de l'ordre de réservation.
 
 ## Requirements
 
